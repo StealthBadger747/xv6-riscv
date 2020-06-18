@@ -103,4 +103,20 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  // Add a flag for strace functionality
+  int traceon;                 // Flag for strace fucntionality, default is 0
+};
+
+// Add p_info struct for storing the information of a process in the p_table struct
+struct p_info {
+  int pid;
+  uint64 sz;
+  char name[16];
+};
+
+// Add p_table struct for the ps command to use
+struct p_table {
+  struct p_info table[64];    // A table of p_info, aka active processes
+  int p_count;                // Keeps track of the number of entries in table
 };

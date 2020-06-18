@@ -36,3 +36,6 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+entry("numprocs");
+entry("traceon");
+entry("psget");

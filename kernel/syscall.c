@@ -104,6 +104,9 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
+extern uint64 sys_numprocs(void);
+extern uint64 sys_traceon(void);
+extern uint64 sys_psget(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -127,6 +130,9 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_numprocs]sys_numprocs,
+[SYS_traceon] sys_traceon,
+[SYS_psget]   sys_psget,
 };
 
 void
@@ -140,7 +146,7 @@ syscall(void)
     p->tf->a0 = syscalls[num]();
   } else {
     printf("%d %s: unknown sys call %d\n",
-            p->pid, p->name, num);
+    p->pid, p->name, num);
     p->tf->a0 = -1;
   }
 }

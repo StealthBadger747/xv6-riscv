@@ -72,9 +72,15 @@ sys_read(void)
   struct file *f;
   int n;
   uint64 p;
+  int argfd_status = argfd(0, 0, &f);
 
-  if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
+  if(argfd_status < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
     return -1;
+
+  struct proc *curr_p = myproc();
+  if(curr_p->traceon == 1)
+    printf("[%d] sys_read(%d, %d, %p)\n", curr_p->pid, argfd_status, n, &p);
+
   return fileread(f, p, n);
 }
 
@@ -84,9 +90,14 @@ sys_write(void)
   struct file *f;
   int n;
   uint64 p;
+  int argfd_status = argfd(0, 0, &f);
 
-  if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
+  if(argfd_status < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
     return -1;
+  
+  struct proc *curr_p = myproc();
+  if(curr_p->traceon == 1)
+    printf("[%d] sys_write(%d, %d, %p)\n", curr_p->pid, argfd_status, n, &p);
 
   return filewrite(f, p, n);
 }

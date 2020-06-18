@@ -120,6 +120,9 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  // Set default value for traceon flag
+  p->traceon = 0;
+
   return p;
 }
 
@@ -669,5 +672,42 @@ procdump(void)
       state = "???";
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
+  }
+}
+
+int
+numprocs(void)
+{
+  struct proc *p;
+  int count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state != UNUSED) {
+		  count += 1;
+	  }
+  }
+  return count;
+}
+
+void
+psget(struct p_table *pt)
+{
+  struct proc *p;
+  pt->p_count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state != UNUSED){
+      struct p_info *entry = &pt->table[pt->p_count];
+      // Copy PID
+      entry->pid = p->pid;
+      // Copy Memory
+      entry->sz = p->sz;
+      // Copy Name
+      safestrcpy(entry->name, p->name, sizeof(p->name) + 1);
+      // Increment count
+      pt->p_count++;
+	  }
+    release(&p->lock);
   }
 }

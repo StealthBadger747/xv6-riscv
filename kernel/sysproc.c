@@ -60,6 +60,9 @@ sys_sleep(void)
 
   if(argint(0, &n) < 0)
     return -1;
+  struct proc *curr_p = myproc();
+  if(curr_p->traceon == 1)
+    printf("[%d] sys_sleep(%d)\n", curr_p->pid, n);
   acquire(&tickslock);
   ticks0 = ticks;
   while(ticks - ticks0 < n){
@@ -70,6 +73,7 @@ sys_sleep(void)
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
+
   return 0;
 }
 
@@ -94,4 +98,34 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_numprocs(void)
+{
+  return numprocs();
+}
+
+uint64
+sys_traceon(void)
+{
+  myproc()->traceon = 1;
+  return 0;
+}
+
+uint64
+sys_psget(void)
+{
+  uint64 ps_info_addr;
+  if(argaddr(0, &ps_info_addr) < 0)
+    return -1;
+  
+  struct p_table pt;
+  psget(&pt);
+
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  int status = copyout(p->pagetable, ps_info_addr, (char *) &pt, sizeof(pt) + 1);
+  release(&p->lock);
+  return status;
 }
