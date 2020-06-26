@@ -657,7 +657,8 @@ procdump(void)
   [SLEEPING]  "sleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
-  [ZOMBIE]    "zombie"
+  [ZOMBIE]    "zombie",
+  [SUSPENDED] "suspended"
   };
   struct proc *p;
   char *state;
@@ -710,4 +711,16 @@ psget(struct p_table *pt)
 	  }
     release(&p->lock);
   }
+}
+
+void
+suspend(int pid)
+{
+
+}
+
+void
+resume(int pid)
+{
+
 }

@@ -107,6 +107,8 @@ extern uint64 sys_uptime(void);
 extern uint64 sys_numprocs(void);
 extern uint64 sys_traceon(void);
 extern uint64 sys_psget(void);
+extern uint64 sys_suspend(void);
+extern uint64 sys_resume(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -133,6 +135,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_numprocs]sys_numprocs,
 [SYS_traceon] sys_traceon,
 [SYS_psget]   sys_psget,
+[SYS_suspend] sys_suspend,
+[SYS_resume]  sys_resume,
 };
 
 void

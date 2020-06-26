@@ -39,3 +39,5 @@ entry("uptime");
 entry("numprocs");
 entry("traceon");
 entry("psget");
+entry("suspend");
+entry("resume");

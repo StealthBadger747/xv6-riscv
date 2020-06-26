@@ -62,6 +62,9 @@ sys_dup(void)
     return -1;
   if((fd=fdalloc(f)) < 0)
     return -1;
+  struct proc *curr_p = myproc();
+  if(curr_p->traceon == 1)
+    printf("[%d] sys_dup(%d)\n", curr_p->pid, argfd(0, 0, &f));
   filedup(f);
   return fd;
 }
@@ -79,7 +82,7 @@ sys_read(void)
 
   struct proc *curr_p = myproc();
   if(curr_p->traceon == 1)
-    printf("[%d] sys_read(%d, %d, %p)\n", curr_p->pid, argfd_status, n, &p);
+    printf("[%d] sys_read(%d, %p, %d)\n", curr_p->pid, argfd_status, p, n);
 
   return fileread(f, p, n);
 }
@@ -97,7 +100,7 @@ sys_write(void)
   
   struct proc *curr_p = myproc();
   if(curr_p->traceon == 1)
-    printf("[%d] sys_write(%d, %d, %p)\n", curr_p->pid, argfd_status, n, &p);
+    printf("[%d] sys_write(%d, %p, %d)\n", curr_p->pid, argfd_status, p, n);
 
   return filewrite(f, p, n);
 }
@@ -110,7 +113,10 @@ sys_close(void)
 
   if(argfd(0, &fd, &f) < 0)
     return -1;
-  myproc()->ofile[fd] = 0;
+  struct proc *curr_p = myproc();
+  curr_p->ofile[fd] = 0;
+  if(curr_p->traceon == 1)
+    printf("[%d] close(%d)\n");
   fileclose(f);
   return 0;
 }

@@ -27,6 +27,8 @@ int uptime(void);
 int numprocs(void);
 void traceon(void);
 void psget(struct p_table*);
+void suspend(int);
+void resume(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

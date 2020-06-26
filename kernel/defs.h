@@ -107,6 +107,8 @@ void            procdump(void);
 int             numprocs(void);
 void            traceon(void);
 void            psget(struct p_table *pt);
+void            suspend(int);
+void            resume(int);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

@@ -129,3 +129,17 @@ sys_psget(void)
   release(&p->lock);
   return status;
 }
+
+uint64
+sys_suspend(void)
+{
+
+  return 0;
+}
+
+uint64
+sys_resume(void)
+{
+
+  return 0;
+}
