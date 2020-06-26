@@ -462,6 +462,10 @@ scheduler(void)
         c->proc = p;
         swtch(&c->scheduler, &p->context);
 
+        // Check for suspended process
+        if(p->suspended)
+          exit(-1);
+
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
@@ -604,7 +608,7 @@ kill(int pid)
     acquire(&p->lock);
     if(p->pid == pid){
       p->killed = 1;
-      if(p->state == SLEEPING){
+      if(p->state == SLEEPING || p->state == SUSPENDED){
         // Wake process from sleep().
         p->state = RUNNABLE;
       }
@@ -693,6 +697,15 @@ numprocs(void)
 void
 psget(struct p_table *pt)
 {
+  static char *states[] = {
+  [UNUSED]    "unused",
+  [SLEEPING]  "sleep ",
+  [RUNNABLE]  "runble",
+  [RUNNING]   "run   ",
+  [ZOMBIE]    "zombie",
+  [SUSPENDED] "suspended"
+  };
+
   struct proc *p;
   pt->p_count = 0;
 
@@ -706,6 +719,8 @@ psget(struct p_table *pt)
       entry->sz = p->sz;
       // Copy Name
       safestrcpy(entry->name, p->name, sizeof(p->name) + 1);
+      // Copy State
+      safestrcpy(entry->state, states[p->state], sizeof(p->state) + 1);
       // Increment count
       pt->p_count++;
 	  }
@@ -713,14 +728,50 @@ psget(struct p_table *pt)
   }
 }
 
+int
+ksuspend(int pid, char *fname)
+{
+  printf("ksuspend('%d', '%s') called\n", pid, fname);
+
+  int found = 0;
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid) {
+      p->state = SUSPENDED;
+      found = 1;
+      release(&p->lock);
+      break;
+    }
+    release(&p->lock);
+  }
+
+  if(!found)
+    return -1;
+
+  return 0;
+}
+
 void
 suspend(int pid)
 {
-
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid)
+      p->state = SUSPENDED;
+    release(&p->lock);
+  }
 }
 
 void
 resume(int pid)
 {
-
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid)
+      p->state = RUNNABLE;
+    release(&p->lock);
+  }
 }

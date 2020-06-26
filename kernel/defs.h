@@ -107,6 +107,7 @@ void            procdump(void);
 int             numprocs(void);
 void            traceon(void);
 void            psget(struct p_table *pt);
+int             ksuspend(int, char*);
 void            suspend(int);
 void            resume(int);
 

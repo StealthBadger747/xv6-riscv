@@ -133,6 +133,7 @@ UPROGS=\
 	$U/_numprocs\
 	$U/_strace \
 	$U/_ps \
+	$U/_suspend \
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

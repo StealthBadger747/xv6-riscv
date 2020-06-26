@@ -106,12 +106,14 @@ struct proc {
 
   // Add a flag for strace functionality
   int traceon;                 // Flag for strace fucntionality, default is 0
+  int suspended;
 };
 
 // Add p_info struct for storing the information of a process in the p_table struct
 struct p_info {
   int pid;
   uint64 sz;
+  char state[16];
   char name[16];
 };
 

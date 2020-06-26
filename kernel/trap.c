@@ -73,7 +73,7 @@ usertrap(void)
     p->killed = 1;
   }
 
-  if(p->killed)
+  if(p->killed || p->suspended)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
