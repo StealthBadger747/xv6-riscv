@@ -34,6 +34,7 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+int             kernelfilewrite(struct file*, uint64, int n);
 
 // fs.c
 void            fsinit(int);
@@ -108,7 +109,6 @@ int             numprocs(void);
 void            traceon(void);
 void            psget(struct p_table *pt);
 int             ksuspend(int, struct file *);
-int             suspend(int);
 void            resume(int);
 
 // swtch.S

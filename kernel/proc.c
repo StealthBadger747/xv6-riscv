@@ -748,10 +748,11 @@ ksuspend(int pid, struct file *f)
   }
 
   if(!found) {
+    printf("NOT FOUND!!");
     return -1;
   }
   else {
-    // Populate struct with information needed to resume
+    /* // Populate struct with information needed to resume
     struct suspended_hdr suspension;
     suspension.mem_sz = p->sz;
     suspension.code_sz = p->sz - (2 * PGSIZE);
@@ -763,7 +764,16 @@ ksuspend(int pid, struct file *f)
     pagetable_t old_table = myproc()->pagetable;  // The current table
     myproc()->pagetable = p->pagetable;           // The pagetable of the suspended program
 
-    
+    // Write from kernel
+    kernelfilewrite(f, (uint64) &suspension, sizeof(suspension));
+    kernelfilewrite(f, (uint64) p->tf, sizeof(p->tf));
+
+    // Write normal
+    filewrite(f, (uint64) 0, suspension.code_sz);
+    filewrite(f, (uint64) (suspension.code_sz + PGSIZE), PGSIZE);
+  
+    // Restore pagetable
+    myproc()->pagetable = old_table; */
   }
 
   return 0;

@@ -66,8 +66,9 @@ main(int argc, char *argv[]) {
       sleep(100);
     }
 */
-
     ps_local();
+    kill(pid);
+    //ps_local();
 
-    return rv;
+    exit(0);
 }
