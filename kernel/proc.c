@@ -729,9 +729,9 @@ psget(struct p_table *pt)
 }
 
 int
-ksuspend(int pid, char *fname)
+ksuspend(int pid, struct file *f)
 {
-  printf("ksuspend('%d', '%s') called\n", pid, fname);
+  printf("ksuspend('%d', '...') called\n", pid);
 
   int found = 0;
   struct proc *p;
@@ -739,6 +739,7 @@ ksuspend(int pid, char *fname)
     acquire(&p->lock);
     if(p->pid == pid) {
       p->state = SUSPENDED;
+      p->suspended = 1;
       found = 1;
       release(&p->lock);
       break;
@@ -746,12 +747,29 @@ ksuspend(int pid, char *fname)
     release(&p->lock);
   }
 
-  if(!found)
+  if(!found) {
     return -1;
+  }
+  else {
+    // Populate struct with information needed to resume
+    struct suspended_hdr suspension;
+    suspension.mem_sz = p->sz;
+    suspension.code_sz = p->sz - (2 * PGSIZE);
+    suspension.stack_sz = PGSIZE;
+    suspension.traceon = p->traceon;
+    strncpy(suspension.name, p->name, 16);
+    
+    // Store current page table to swap out to new one to write stuff
+    pagetable_t old_table = myproc()->pagetable;  // The current table
+    myproc()->pagetable = p->pagetable;           // The pagetable of the suspended program
+
+    
+  }
 
   return 0;
 }
 
+/*
 void
 suspend(int pid)
 {
@@ -763,7 +781,7 @@ suspend(int pid)
     release(&p->lock);
   }
 }
-
+*/
 void
 resume(int pid)
 {

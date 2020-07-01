@@ -498,3 +498,21 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_suspend(void)
+{
+  int pid;
+  struct file *f;
+  int rv;
+
+  if(argint(0, &pid) < 0)
+    return -1;
+
+  if(argfd(1, 0, &f) < 0)
+    return -1;
+
+  rv = ksuspend(pid, f);
+
+  return rv;
+}

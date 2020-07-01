@@ -131,24 +131,6 @@ sys_psget(void)
 }
 
 uint64
-sys_suspend(void)
-{
-  int pid;
-  char fname[64];
-  int rv;
-
-  if(argint(0, &pid) < 0)
-    return -1;
-
-  if(argstr(1, fname, 64) < 0)
-    return -1;
-
-  rv = ksuspend(pid, fname)
-  //suspend(pid);
-  return rv;
-}
-
-uint64
 sys_resume(void)
 {
   int pid;
