@@ -132,8 +132,9 @@ found:
 static void
 freeproc(struct proc *p)
 {
-  if(p->tf)
+  if(p->tf) {
     kfree((void*)p->tf);
+  }
   p->tf = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);

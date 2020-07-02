@@ -154,7 +154,7 @@ loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz
 
 
 int
-kresume(char *path)
+kffresume(char *path)
 {
   /* DELETE THIS LATER */ //char **argv;
   
@@ -177,8 +177,6 @@ kresume(char *path)
     return -1;
   }
   ilock(ip);
-
-  printf("I'm in the kernel :)\n");
 
   if((pagetable = proc_pagetable(p)) == 0)
     goto bad;
@@ -311,4 +309,99 @@ kresume(char *path)
 
 // skip:
 //  return 0;
+}
+
+int
+kresume(char *path)
+{
+  /* DELETE THIS LATER */ //char **argv;
+  
+  //char *s, *last;
+  //int i, off;
+  uint64 sz, sp, stackbase; // , ustack[MAXARG+1]
+  struct inode *ip;
+  //struct proghdr ph;
+  pagetable_t pagetable = 0, oldpagetable;
+  struct proc *p = myproc();
+  
+  struct suspended_hdr sus_hdr;
+  struct trapframe tf;
+  int off, file_code_off, file_stack_off;
+  
+  begin_op();
+
+  if((ip = namei(path)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(ip);
+  
+  if((pagetable = proc_pagetable(p)) == 0)
+    goto bad;
+
+  off = 0;
+  sz = 0;
+  file_code_off = sizeof(sus_hdr) + sizeof(tf);
+
+  // Read in the program header
+  if(readi(ip, 0, (uint64)&sus_hdr, 0, sizeof(sus_hdr)) != sizeof(sus_hdr))
+    goto bad;
+  if((sz = uvmalloc(pagetable, sz, sus_hdr.code_sz)) == 0)
+    goto bad;
+
+  // Load code into memory
+  if(loadseg(pagetable, 0, ip, file_code_off, sus_hdr.code_sz) < 0)
+    goto bad;
+  off += sizeof(sus_hdr);
+
+  // Read in the trap frame
+  if(readi(ip, 0, (uint64)&tf, off, sizeof(tf)) != sizeof(tf))
+    goto bad;
+  off += sizeof(tf);
+
+  p = myproc();
+  uint64 oldsz = p->sz;
+
+  // Allocate two pages at the next page boundary.
+  // Use the second as the user stack.
+  sz = PGROUNDUP(sz);
+  if((sz = uvmalloc(pagetable, sz, sz + 2*PGSIZE)) == 0)
+    goto bad;
+  uvmclear(pagetable, sz-2*PGSIZE);
+  sp = sz;
+  stackbase = sp - PGSIZE;
+
+  // Load in stack to memory
+  file_stack_off = sizeof(sus_hdr) + sizeof(tf) + sus_hdr.code_sz;
+  if(loadseg(pagetable, stackbase, ip, file_stack_off, sus_hdr.stack_sz) < 0)
+    goto bad;
+
+  iunlockput(ip);
+  end_op();
+  ip = 0;
+  
+  safestrcpy(p->name, sus_hdr.name, sizeof(p->name));
+
+  //proc_freepagetable(pagetable, sz);
+  //goto skip;
+
+  // Commit to the user image.
+  oldpagetable = p->pagetable;
+  p->pagetable = pagetable;
+  p->sz = sz;
+  myproc()->tf = &tf;
+  // This gets replaced by the old trapframe
+    //p->tf->epc = elf.entry;  // initial program counter = main
+  myproc()->tf->sp = sp; // initial stack pointer
+  proc_freepagetable(oldpagetable, oldsz);
+  return 0;
+
+ bad:
+  if(pagetable)
+    proc_freepagetable(pagetable, sz);
+  if(ip){
+    iunlockput(ip);
+    end_op();
+  }
+  return -1;
 }
