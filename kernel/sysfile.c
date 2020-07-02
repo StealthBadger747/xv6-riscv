@@ -516,3 +516,17 @@ sys_suspend(void)
 
   return rv;
 }
+
+uint64
+sys_resume(void)
+{
+  char path[MAXPATH];
+  int rv;
+
+  if(argstr(0, path, MAXPATH) < 0)
+    return -1;
+
+  rv = kresume(path);
+  
+  return rv;
+}

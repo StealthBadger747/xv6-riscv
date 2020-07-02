@@ -129,13 +129,3 @@ sys_psget(void)
   release(&p->lock);
   return status;
 }
-
-uint64
-sys_resume(void)
-{
-  int pid;
-  if(argint(0, &pid) < 0)
-    return -1;
-  resume(pid);
-  return 0;
-}

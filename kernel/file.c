@@ -181,7 +181,7 @@ filewrite(struct file *f, uint64 addr, int n)
 }
 
 // Write to file f.
-// addr is a user virtual address.
+// addr is a kernel virtual address.
 int
 kernelfilewrite(struct file *f, uint64 addr, int n)
 {

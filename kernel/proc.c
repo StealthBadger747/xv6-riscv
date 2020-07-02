@@ -729,30 +729,29 @@ psget(struct p_table *pt)
 }
 
 int
-ksuspend(int pid, struct file *f)
+ksuspend(int pid, struct file *file)
 {
   printf("ksuspend('%d', '...') called\n", pid);
 
   int found = 0;
+  struct proc *p_iter;
   struct proc *p;
-  for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
-    if(p->pid == pid) {
-      p->state = SUSPENDED;
-      p->suspended = 1;
+  for(p_iter = proc; p_iter < &proc[NPROC]; p_iter++){
+    acquire(&p_iter->lock);
+    if(p_iter->pid == pid){
+      p_iter->state = SUSPENDED;
+      p = p_iter;
       found = 1;
-      release(&p->lock);
-      break;
     }
-    release(&p->lock);
+    release(&p_iter->lock);
   }
 
-  if(!found) {
+  if(!found){
     printf("NOT FOUND!!");
     return -1;
   }
   else {
-    /* // Populate struct with information needed to resume
+    // Populate struct with information needed to resume
     struct suspended_hdr suspension;
     suspension.mem_sz = p->sz;
     suspension.code_sz = p->sz - (2 * PGSIZE);
@@ -765,41 +764,16 @@ ksuspend(int pid, struct file *f)
     myproc()->pagetable = p->pagetable;           // The pagetable of the suspended program
 
     // Write from kernel
-    kernelfilewrite(f, (uint64) &suspension, sizeof(suspension));
-    kernelfilewrite(f, (uint64) p->tf, sizeof(p->tf));
+    kernelfilewrite(file, (uint64) &suspension, sizeof(suspension));
+    kernelfilewrite(file, (uint64) p->tf, sizeof(struct trapframe));
 
     // Write normal
-    filewrite(f, (uint64) 0, suspension.code_sz);
-    filewrite(f, (uint64) (suspension.code_sz + PGSIZE), PGSIZE);
-  
+    filewrite(file, (uint64) 0, suspension.code_sz);
+    filewrite(file, (uint64) (suspension.code_sz + PGSIZE), PGSIZE);
+
     // Restore pagetable
-    myproc()->pagetable = old_table; */
+    myproc()->pagetable = old_table;
   }
 
   return 0;
-}
-
-/*
-void
-suspend(int pid)
-{
-  struct proc *p;
-  for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
-    if(p->pid == pid)
-      p->state = SUSPENDED;
-    release(&p->lock);
-  }
-}
-*/
-void
-resume(int pid)
-{
-  struct proc *p;
-  for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
-    if(p->pid == pid)
-      p->state = RUNNABLE;
-    release(&p->lock);
-  }
 }

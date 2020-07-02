@@ -25,7 +25,6 @@ void ps_local() {
         printf("%d\t%dK\t%s\t%s\n", pt.table[i].pid, pt.table[i].sz / 1024, pt.table[i].state, pt.table[i].name);
     }
 }
-    
 
 int
 main(int argc, char *argv[]) {
@@ -66,7 +65,7 @@ main(int argc, char *argv[]) {
       sleep(100);
     }
 */
-    ps_local();
+    //ps_local();
     kill(pid);
     //ps_local();
 

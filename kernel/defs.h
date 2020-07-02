@@ -25,6 +25,7 @@ void            consputc(int);
 
 // exec.c
 int             exec(char*, char**);
+int             kresume(char *);
 
 // file.c
 struct file*    filealloc(void);
@@ -109,7 +110,6 @@ int             numprocs(void);
 void            traceon(void);
 void            psget(struct p_table *pt);
 int             ksuspend(int, struct file *);
-void            resume(int);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

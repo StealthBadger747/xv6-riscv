@@ -28,7 +28,7 @@ int numprocs(void);
 void traceon(void);
 void psget(struct p_table*);
 int suspend(int, int);
-int resume(int);
+int resume(char *);
 
 // ulib.c
 int stat(const char*, struct stat*);
