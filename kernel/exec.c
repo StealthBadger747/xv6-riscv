@@ -382,59 +382,20 @@ kresume(char *path)
   
   safestrcpy(p->name, sus_hdr.name, sizeof(p->name));
 
-  //proc_freepagetable(pagetable, sz);
-  //goto skip;
-
-  // Commit to the user image.
+  //getting current process and save old values
+  p = myproc();
+  oldsz = p->sz; 
   oldpagetable = p->pagetable;
-  p->pagetable = pagetable;
-  p->sz = sz;
-  p->suspened = 0;
-  p->traceon = sus_hdr.traceon;
-  
-  p->tf->sp = tf.sp;
-  p->tf->a1 = tf.a1;
-  p->tf->epc = tf.epc;
-  p->tf->kernel_satp = tf.kernel_satp;
-  p->tf->kernel_sp = tf.kernel_sp;     // top of process's kernel stack
-  p->tf->kernel_trap = tf.kernel_trap;   // usertrap()        
-  p->tf->kernel_hartid = tf.kernel_hartid; // saved kernel tp
-  p->tf->ra = tf.ra;
-  p->tf->sp = tf.sp;
-  p->tf->gp = tf.gp;
-  p->tf->tp = tf.tp;
-  p->tf->t0 = tf.t0;
-  p->tf->t1 = tf.t1;
-  p->tf->t2 = tf.t2;
-  p->tf->s0 = tf.s0;
-  p->tf->s1 = tf.s1;
-  p->tf->a0 = tf.a0;
-  p->tf->a1 = tf.a1;
-  p->tf->a2 = tf.a2;
-  p->tf->a3 = tf.a3;
-  p->tf->a4 = tf.a4;
-  p->tf->a5 = tf.a5;
-  p->tf->a6 = tf.a6;
-  p->tf->a7 = tf.a7;
-  p->tf->s2 = tf.s2;
-  p->tf->s3 = tf.s3;
-  p->tf->s4 = tf.s4;
-  p->tf->s5 = tf.s5;
-  p->tf->s6 = tf.s6;
-  p->tf->s7 = tf.s7;
-  p->tf->s8 = tf.s8;
-  p->tf->s9 = tf.s9;
-  p->tf->s10 = tf.s10;
-  p->tf->s11 = tf.s11;
-  p->tf->t3 = tf.t3;
-  p->tf->t4 = tf.t4;
-  p->tf->t5 = tf.t5;
-  p->tf->t6 = tf.t6;
+  //read in the trapframe
+  if(readi(ip, ksp, (uint64)p->tf, fileoffset, sizeof(tf)) != sizeof(tf))
+    goto bad;
+  fileoffset += sizeof(tf);
 
-  //myproc()->tf = &tf;
-  // This gets replaced by the old trapframe
-    //p->tf->epc = elf.entry;  // initial program counter = main
-  //myproc()->tf->sp = sp; // initial stack pointer
+  printf(
+    "kernel_sp should also be %p\n", 
+    p->tf->kernel_sp
+  );
+
   proc_freepagetable(oldpagetable, oldsz);
   return 0;
 
