@@ -152,181 +152,18 @@ loadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz
   return 0;
 }
 
-
-int
-kffresume(char *path)
-{
-  /* DELETE THIS LATER */ //char **argv;
-  
-  //char *s, *last;
-  //int i, off;
-  uint64 argc, sz, sp, stackbase; // , ustack[MAXARG+1]
-  struct inode *ip;
-  //struct proghdr ph;
-  pagetable_t pagetable = 0, oldpagetable;
-  struct proc *p = myproc();
-  
-  struct suspended_hdr sus_hdr;
-  struct trapframe tf;
-  int off, file_code_off, file_stack_off;
-  
-  begin_op();
-
-  if((ip = namei(path)) == 0){
-    end_op();
-    return -1;
-  }
-  ilock(ip);
-
-  if((pagetable = proc_pagetable(p)) == 0)
-    goto bad;
-
-  // ------------------------------------------------------
-
-  // Manually load into memory
-  off = 0;
-  sz = 0;
-  file_code_off = sizeof(sus_hdr) + sizeof(tf);
-
-  // Read in the program header
-  if(readi(ip, 0, (uint64)&sus_hdr, 0, sizeof(sus_hdr)) != sizeof(sus_hdr))
-    goto bad;
-  if((sz = uvmalloc(pagetable, sz, sus_hdr.code_sz)) == 0)
-    goto bad;
-
-  // Load code into memory
-  if(loadseg(pagetable, 0, ip, file_code_off, sus_hdr.code_sz) < 0)
-    goto bad;
-  //file_code_off += PAGESIZE;
-  //if(loadseg(pagetable, 0, ip, file_code_off, sus_hdr.code_sz) < 0)
-  //  goto bad;
-  off += sizeof(sus_hdr);
-  /* Expected Values:
-      MEM SIZE: '12288'
-      Stack Size: '4096'
-      Trap Frame t2: '0x0505050505050505' */
-  printf("MEM SIZE: '%d'\n", sus_hdr.mem_sz);
-  printf("Stack Size: '%d'\n", sus_hdr.stack_sz);
-
-  // Read in the trap frame
-  if(readi(ip, 0, (uint64)&tf, off, sizeof(tf)) != sizeof(tf))
-    goto bad;
-  off += sizeof(tf);
-
-  printf("Trap Frame t2: '%p'\n", tf.t2);
-
-
-  // Load in stack to memory
-  file_stack_off = sizeof(sus_hdr) + sizeof(tf) + PGSIZE;
-  //file_stack_off++;
-  //stackbase++;
-
-  // ------------------------------------------------------
-
-  // Allocate two pages at the next page boundary.
-  // Use the second as the user stack.
-  sz = PGROUNDUP(sz);
-  if((sz = uvmalloc(pagetable, sz, sz + 2*PGSIZE)) == 0)
-    goto bad;
-  uvmclear(pagetable, sz-2*PGSIZE);
-  sp = sz;
-  stackbase = sp - PGSIZE;
-
-  printf("Page Table: '%p'\n", &pagetable);
-  printf("Stackbase: '%p'\n", (uint64) stackbase);
-  printf("Stack ptr: '%p'\n", (uint64) sp);
-  printf("Stack off: '%p'\n", (uint64) file_stack_off);
-  printf("Stack off: '%d'\n", file_stack_off);
-  printf("Stack off: '%d'\n", PGSIZE * 3);
-  printf("Stackbase: '%d'\n", stackbase);
-  printf("Size: '%d'\n", sz);
-
-  // Copy it out to userspace
-  //if(copyout(pagetable, sp, argv[argc], PGSIZE + 1) < 0)
-  //  goto bad;
-
-  if(loadseg(pagetable, stackbase, ip, file_stack_off, sus_hdr.stack_sz) < 0)
-    goto bad;
-
-
-  iunlockput(ip);
-  end_op();
-  ip = 0;
-
-  p = myproc();
-  uint64 oldsz = p->sz;
-
-/*
-  // Push argument strings, prepare rest of stack in ustack.
-  for(argc = 0; argv[argc]; argc++) {
-    if(argc >= MAXARG)
-      goto bad;
-    sp -= strlen(argv[argc]) + 1;
-    sp -= sp % 16; // riscv sp must be 16-byte aligned
-    if(sp < stackbase)
-      goto bad;
-    if(copyout(pagetable, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
-      goto bad;
-    ustack[argc] = sp;
-  }
-  ustack[argc] = 0;
-*/
-  // push the array of argv[] pointers.
-  //if(copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)) < 0)
-  //  goto bad;
-
-
-  //sp -= sp % 16;
-  //if(sp < stackbase)
-  //  goto bad;
-
-  // arguments to user main(argc, argv)
-  // argc is returned via the system call return
-  // value, which goes in a0.
-  p->tf->a1 = sp;
-  
-  safestrcpy(p->name, sus_hdr.name, sizeof(p->name));
-
-  // Commit to the user image.
-  oldpagetable = p->pagetable;
-  p->pagetable = pagetable;
-  p->sz = sz;
-  // This gets replaced by the old trapframe
-    //p->tf->epc = elf.entry;  // initial program counter = main
-    //p->tf->sp = sp; // initial stack pointer
-  p->tf = &tf;
-  proc_freepagetable(oldpagetable, oldsz);
-  return argc; // this ends up in a0, the first argument to main(argc, argv)
-
- bad:
-  if(pagetable)
-    proc_freepagetable(pagetable, sz);
-  if(ip){
-    iunlockput(ip);
-    end_op();
-  }
-  return -1;
-
-// skip:
-//  return 0;
-}
-
 int
 kresume(char *path)
 {
-  /* DELETE THIS LATER */ //char **argv;
-  
-  //char *s, *last;
-  //int i, off;
-  uint64 sz, sp, stackbase; // , ustack[MAXARG+1]
+  uint64 sz, sp, stackbase;
   struct inode *ip;
-  //struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
   
   struct suspended_hdr sus_hdr;
   struct trapframe tf;
-  int off, file_code_off, file_stack_off;
+  int file_tf_off, file_code_off, file_stack_off;
+  uint64 oldsz;
   
   begin_op();
 
@@ -338,8 +175,7 @@ kresume(char *path)
   
   if((pagetable = proc_pagetable(p)) == 0)
     goto bad;
-
-  off = 0;
+  
   sz = 0;
   file_code_off = sizeof(sus_hdr) + sizeof(tf);
 
@@ -352,15 +188,7 @@ kresume(char *path)
   // Load code into memory
   if(loadseg(pagetable, 0, ip, file_code_off, sus_hdr.code_sz) < 0)
     goto bad;
-  off += sizeof(sus_hdr);
-
-  // Read in the trap frame
-  if(readi(ip, 0, (uint64)&tf, off, sizeof(tf)) != sizeof(tf))
-    goto bad;
-  off += sizeof(tf);
-
-  p = myproc();
-  uint64 oldsz = p->sz;
+  file_tf_off = sizeof(sus_hdr);
 
   // Allocate two pages at the next page boundary.
   // Use the second as the user stack.
@@ -376,25 +204,20 @@ kresume(char *path)
   if(loadseg(pagetable, stackbase, ip, file_stack_off, sus_hdr.stack_sz) < 0)
     goto bad;
 
+  // Getting current process and save old values
+  p = myproc();
+  oldsz = p->sz; 
+  oldpagetable = p->pagetable;
+
+  // Read in the trap frame in preparation for reading in the trapframe
+  if(readi(ip, sp, (uint64)p->tf, file_tf_off, sizeof(tf)) != sizeof(tf))
+    goto bad;
+
   iunlockput(ip);
   end_op();
   ip = 0;
   
   safestrcpy(p->name, sus_hdr.name, sizeof(p->name));
-
-  //getting current process and save old values
-  p = myproc();
-  oldsz = p->sz; 
-  oldpagetable = p->pagetable;
-  //read in the trapframe
-  if(readi(ip, ksp, (uint64)p->tf, fileoffset, sizeof(tf)) != sizeof(tf))
-    goto bad;
-  fileoffset += sizeof(tf);
-
-  printf(
-    "kernel_sp should also be %p\n", 
-    p->tf->kernel_sp
-  );
 
   proc_freepagetable(oldpagetable, oldsz);
   return 0;

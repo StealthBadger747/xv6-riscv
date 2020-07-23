@@ -19,7 +19,7 @@ main(int argc, char *argv[])
     else
       printf("i = %d\n", i);
   
-    sleep(30);
+    sleep(20);
     i++;
   }
 
