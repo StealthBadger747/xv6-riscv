@@ -136,6 +136,8 @@ UPROGS=\
 	$U/_suspend \
 	$U/_resume \
 	$U/_vctest \
+	$U/_free\
+	$U/_ctool\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

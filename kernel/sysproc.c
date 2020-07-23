@@ -129,3 +129,9 @@ sys_psget(void)
   release(&p->lock);
   return status;
 }
+
+uint64
+sys_ccreate(void)
+{
+  return 0;
+}
