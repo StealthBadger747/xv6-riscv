@@ -3,7 +3,7 @@
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
-#include "user.h"
+#include "user/user.h"
 
 int
 main(int argc, char *argv[])
@@ -11,7 +11,7 @@ main(int argc, char *argv[])
   int fd, id;
 
   if (argc < 3) {
-    printf("usage: vctest <vc> <cmd> [<arg> ...]\n");
+    printf("usage: vctest <vc> <name> <cmd> [<arg> ...]\n");
     exit(-1);
   }
 

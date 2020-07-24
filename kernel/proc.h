@@ -109,6 +109,25 @@ struct proc {
   int traceon;                 // Flag for strace fucntionality, default is 0
 };
 
+// Struct for each container
+struct container {
+  int privilege_level;        // 0 signifies root privileges
+  char name[32];
+  int proc_limit;
+  int mem_limit;
+  int disk_limit;
+  int proc_count;
+  int mem_usage;
+  int disk_usage;
+  struct inode *rootdir;
+  int tokens;
+
+  // Information needed for swaping contexts
+  struct proc cont_proc[NPROC];
+  struct proc *initproc;
+  int nextpid;
+};
+
 // Add p_info struct for storing the information of a process in the p_table struct
 struct p_info {
   int pid;
@@ -119,7 +138,7 @@ struct p_info {
 
 // Add p_table struct for the ps command to use
 struct p_table {
-  struct p_info table[64];    // A table of p_info, aka active processes
+  struct p_info table[NPROC];    // A table of p_info, aka active processes
   int p_count;                // Keeps track of the number of entries in table
 };
 

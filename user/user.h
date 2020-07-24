@@ -29,6 +29,7 @@ void traceon(void);
 void psget(struct p_table*);
 int suspend(int, int);
 int resume(char *);
+int cstart(int, char *);
 
 // ulib.c
 int stat(const char*, struct stat*);

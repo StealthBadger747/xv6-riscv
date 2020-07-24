@@ -131,7 +131,9 @@ sys_psget(void)
 }
 
 uint64
-sys_ccreate(void)
+sys_cstart(void)
 {
+  printf("foobar!\n");
+  cstart(1, "foo");
   return 0;
 }

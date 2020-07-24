@@ -8,12 +8,16 @@
 
 struct cpu cpus[NCPU];
 
-struct proc proc[NPROC];
+struct container containers[NCONT];
+uint active_cont = 0;
 
+/** The next three variables are responsible for the changing of contexts **/
+struct proc *proc; // struct proc proc[NPROC];
 struct proc *initproc;
-
 int nextpid = 1;
-struct spinlock pid_lock;
+
+struct spinlock pid_lock; // Maybe this needs to be in the container struct?
+struct spinlock proc_lock;
 
 extern void forkret(void);
 static void wakeup1(struct proc *chan);
@@ -24,20 +28,35 @@ void
 procinit(void)
 {
   struct proc *p;
+  struct container *c;
+
+  // Assign "struct proc *proc" to the root container
+  initlock(&proc_lock, "proc_lock");
+  acquire(&proc_lock);
+  proc = containers[0].cont_proc;
+  release(&proc_lock);
   
   initlock(&pid_lock, "nextpid");
-  for(p = proc; p < &proc[NPROC]; p++) {
-      initlock(&p->lock, "proc");
+  int nproces = 0;
+  for(c = &containers[active_cont]; c < &containers[NCONT]; c++) {
+    for(p = c->cont_proc; p < &c->cont_proc[NPROC]; p++) {
+        initlock(&p->lock, "proc");
+        printf("%d\n", nproces);
 
-      // Allocate a page for the process's kernel stack.
-      // Map it high in memory, followed by an invalid
-      // guard page.
-      char *pa = kalloc();
-      if(pa == 0)
-        panic("kalloc");
-      uint64 va = KSTACK((int) (p - proc));
-      kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-      p->kstack = va;
+        // Allocate a page for the process's kernel stack.
+        // Map it high in memory, followed by an invalid
+        // guard page.
+        char *pa = kalloc();
+        if(pa == 0)
+          panic("kalloc");
+        printf("Diff: %d\n", (p - c->cont_proc + (nproces * 64)));
+        uint64 va = KSTACK((int) (p - c->cont_proc + (nproces * 64)));
+        printf("pa: %p\n", pa);
+        printf("va: %p\n", va);
+        kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+        p->kstack = va;
+    }
+    nproces++;
   }
   kvminithart();
 }
@@ -668,7 +687,7 @@ procdump(void)
   struct proc *p;
   char *state;
 
-  printf("\n");
+  printf("\n-------  PROC DUMP  -------\n");
   for(p = proc; p < &proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
@@ -679,6 +698,7 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+  printf("---------------------------\n");
 }
 
 int
@@ -776,5 +796,14 @@ ksuspend(int pid, struct file *file)
     myproc()->pagetable = old_table;
   }
 
+  return 0;
+}
+
+int
+cstart(int vc_fd, char *name)
+{
+  acquire(&proc_lock);
+  proc = containers[1].cont_proc;
+  release(&proc_lock);
   return 0;
 }
