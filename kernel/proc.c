@@ -45,7 +45,6 @@ procinit(void)
     c->privilege_level = 1;
     for(p = c->cont_proc; p < &c->cont_proc[NPROC]; p++) {
         initlock(&p->lock, "proc");
-        //printf("%d\n", nproces);
 
         // Allocate a page for the process's kernel stack.
         // Map it high in memory, followed by an invalid
@@ -53,10 +52,7 @@ procinit(void)
         char *pa = kalloc();
         if(pa == 0)
           panic("kalloc");
-        //printf("Diff: %d\n", (p - c->cont_proc + (nproces * 64)));
         uint64 va = KSTACK((int) (p - c->cont_proc + (nproces * 64)));
-        //printf("pa: %p\n", pa);
-        //printf("va: %p\n", va);
         kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
         p->kstack = va;
     }
@@ -834,7 +830,6 @@ return_root(void)
 {
   acquire(&proc_lock);
   proc = containers[0].cont_proc;
-  mycpu()->proc = proc;
   release(&proc_lock);
   return 0;
 }
@@ -847,7 +842,6 @@ cstart(int vc_fd, char *name)
     return cont_index;
   acquire(&proc_lock);
   proc = containers[cont_index].cont_proc;
-  mycpu()->proc = proc;
   release(&proc_lock);
 
   //allocproc();
