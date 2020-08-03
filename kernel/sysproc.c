@@ -133,7 +133,11 @@ sys_psget(void)
 uint64
 sys_cstart(void)
 {
-  printf("foobar!\n");
   cstart(1, "foo");
+
+  char *argv[] = { "sh", 0 };
+  exec("sh", argv);
+
+  return_root();
   return 0;
 }

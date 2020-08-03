@@ -39,9 +39,13 @@ procinit(void)
   initlock(&pid_lock, "nextpid");
   int nproces = 0;
   for(c = &containers[active_cont]; c < &containers[NCONT]; c++) {
+    // Initialize lock for each container.
+    initlock(&c->cont_lock, "cont");
+    // Allocate defaults for each container.
+    c->privilege_level = 1;
     for(p = c->cont_proc; p < &c->cont_proc[NPROC]; p++) {
         initlock(&p->lock, "proc");
-        printf("%d\n", nproces);
+        //printf("%d\n", nproces);
 
         // Allocate a page for the process's kernel stack.
         // Map it high in memory, followed by an invalid
@@ -49,15 +53,20 @@ procinit(void)
         char *pa = kalloc();
         if(pa == 0)
           panic("kalloc");
-        printf("Diff: %d\n", (p - c->cont_proc + (nproces * 64)));
+        //printf("Diff: %d\n", (p - c->cont_proc + (nproces * 64)));
         uint64 va = KSTACK((int) (p - c->cont_proc + (nproces * 64)));
-        printf("pa: %p\n", pa);
-        printf("va: %p\n", va);
+        //printf("pa: %p\n", pa);
+        //printf("va: %p\n", va);
         kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
         p->kstack = va;
     }
     nproces++;
   }
+  // Assign the first container to root privileges.
+  containers[0].privilege_level = 0;
+  strncpy(containers[0].name, "root container", 32);
+  containers[0].in_use = 1;
+
   kvminithart();
 }
 
@@ -799,11 +808,48 @@ ksuspend(int pid, struct file *file)
   return 0;
 }
 
+// Attempts to find a free container and return the index.
+// Returns -1 if it can't find anything.
+int
+alloc_cont(void)
+{
+  struct container *c = &containers[1];
+  int index = 1;
+  for(; c <= &containers[NCONT]; c++) {
+    acquire(&c->cont_lock);
+    if(c->in_use == 0) {
+      // Reserve the container.
+      c->in_use = 1;
+      release(&c->cont_lock);
+      return index;
+    }
+    release(&c->cont_lock);
+    index++;
+  }
+  return -1;
+}
+
+int
+return_root(void)
+{
+  acquire(&proc_lock);
+  proc = containers[0].cont_proc;
+  mycpu()->proc = proc;
+  release(&proc_lock);
+  return 0;
+}
+
 int
 cstart(int vc_fd, char *name)
 {
+  int cont_index = alloc_cont();
+  if(cont_index < 1)
+    return cont_index;
   acquire(&proc_lock);
-  proc = containers[1].cont_proc;
+  proc = containers[cont_index].cont_proc;
+  mycpu()->proc = proc;
   release(&proc_lock);
+
+  //allocproc();
   return 0;
 }

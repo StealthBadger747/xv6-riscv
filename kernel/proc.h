@@ -112,20 +112,26 @@ struct proc {
 // Struct for each container
 struct container {
   int privilege_level;        // 0 signifies root privileges
-  char name[32];
-  int proc_limit;
-  int mem_limit;
-  int disk_limit;
-  int proc_count;
-  int mem_usage;
-  int disk_usage;
+  char name[32];              // The name of container
+  int proc_limit;             // -1 for uninitialized and 0 for infinite
+  int mem_limit;              // -1 for uninitialized and 0 for infinite
+  int disk_limit;             // -1 for uninitialized and 0 for infinite
+  int proc_count;             // uninitialized is at 0
+  int mem_usage;              // uninitialized is at 0
+  int disk_usage;             // uninitialized is at 0
   struct inode *rootdir;
   int tokens;
+
+  // Specifies whether it is in use or not
+  int in_use;                 // 0 not not in use. 1 for in use.
 
   // Information needed for swaping contexts
   struct proc cont_proc[NPROC];
   struct proc *initproc;
   int nextpid;
+
+  // Lock for container modifications
+  struct spinlock cont_lock;
 };
 
 // Add p_info struct for storing the information of a process in the p_table struct
