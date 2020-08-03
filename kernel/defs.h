@@ -110,8 +110,7 @@ int             numprocs(void);
 void            traceon(void);
 void            psget(struct p_table *pt);
 int             ksuspend(int, struct file *);
-int				cstart(int vc_fd, char *name);
-int				return_root(void);
+int				cstart(int vc_fd, char *name, int, int, int);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

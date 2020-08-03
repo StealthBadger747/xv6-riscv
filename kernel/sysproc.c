@@ -133,11 +133,15 @@ sys_psget(void)
 uint64
 sys_cstart(void)
 {
-  cstart(1, "foo");
+  int fd;
+  char name[32];
 
-  char *argv[] = { "sh", 0 };
-  exec("sh", argv);
+  if(argint(0, &fd) < 0)
+    return -1;
 
-  return_root();
+  if(argstr(1, name, 32) < 0)
+    return -1;
+
+  cstart(fd, name, 5, 6, 7);
   return 0;
 }

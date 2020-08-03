@@ -11,13 +11,11 @@ struct cpu cpus[NCPU];
 struct container containers[NCONT];
 uint active_cont = 0;
 
-/** The next three variables are responsible for the changing of contexts **/
-struct proc *proc; // struct proc proc[NPROC];
+struct proc proc[NPROC];
 struct proc *initproc;
-int nextpid = 1;
 
-struct spinlock pid_lock; // Maybe this needs to be in the container struct?
-struct spinlock proc_lock;
+int nextpid = 1;
+struct spinlock pid_lock;
 
 extern void forkret(void);
 static void wakeup1(struct proc *chan);
@@ -30,38 +28,34 @@ procinit(void)
   struct proc *p;
   struct container *c;
 
-  // Assign "struct proc *proc" to the root container
-  initlock(&proc_lock, "proc_lock");
-  acquire(&proc_lock);
-  proc = containers[0].cont_proc;
-  release(&proc_lock);
-  
   initlock(&pid_lock, "nextpid");
-  int nproces = 0;
-  for(c = &containers[active_cont]; c < &containers[NCONT]; c++) {
-    // Initialize lock for each container.
-    initlock(&c->cont_lock, "cont");
-    // Allocate defaults for each container.
-    c->privilege_level = 1;
-    for(p = c->cont_proc; p < &c->cont_proc[NPROC]; p++) {
-        initlock(&p->lock, "proc");
+  for(p = proc; p < &proc[NPROC]; p++) {
+      initlock(&p->lock, "proc");
 
-        // Allocate a page for the process's kernel stack.
-        // Map it high in memory, followed by an invalid
-        // guard page.
-        char *pa = kalloc();
-        if(pa == 0)
-          panic("kalloc");
-        uint64 va = KSTACK((int) (p - c->cont_proc + (nproces * 64)));
-        kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-        p->kstack = va;
-    }
-    nproces++;
+      // Allocate a page for the process's kernel stack.
+      // Map it high in memory, followed by an invalid
+      // guard page.
+      char *pa = kalloc();
+      if(pa == 0)
+        panic("kalloc");
+      uint64 va = KSTACK((int) (p - proc));
+      kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+      p->kstack = va;
   }
+
+  int i = 48; // Starts at '0' in ASCII
+  char lock_name[] = "cont_0";
+  for(c = containers; c < &containers[NCONT]; c++) {
+    c->cont_id = i - 48;
+    lock_name[4] = i++;
+    initlock(&c->lock, lock_name);
+  }
+
+  kvminithart();
   // Assign the first container to root privileges.
   containers[0].privilege_level = 0;
   strncpy(containers[0].name, "root container", 32);
-  containers[0].in_use = 1;
+  containers[0].cont_state = USED;
 
   kvminithart();
 }
@@ -79,7 +73,8 @@ cpuid()
 // Return this CPU's cpu struct.
 // Interrupts must be disabled.
 struct cpu*
-mycpu(void) {
+mycpu(void)
+{
   int id = cpuid();
   struct cpu *c = &cpus[id];
   return c;
@@ -87,12 +82,22 @@ mycpu(void) {
 
 // Return the current struct proc *, or zero if none.
 struct proc*
-myproc(void) {
+myproc(void)
+{
   push_off();
   struct cpu *c = mycpu();
   struct proc *p = c->proc;
   pop_off();
   return p;
+}
+
+// Return the current struct container *, or zero if none.
+struct container *
+mycont(void)
+{
+  struct proc *p = myproc();
+  struct container *c = &containers[p->cont_id];
+  return c;
 }
 
 int
@@ -171,6 +176,9 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  mycont()->proc_count--;
+  p->cont_id = 0;
 }
 
 // Create a page table for a given process,
@@ -700,7 +708,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s", p->pid, state, p->name);
+    printf("%d %s %s \t'%s'", p->pid, state, p->name, containers[p->cont_id].name);
     printf("\n");
   }
   printf("---------------------------\n");
@@ -812,38 +820,39 @@ alloc_cont(void)
   struct container *c = &containers[1];
   int index = 1;
   for(; c <= &containers[NCONT]; c++) {
-    acquire(&c->cont_lock);
-    if(c->in_use == 0) {
+    acquire(&c->lock);
+    if(c->cont_state == 0) {
       // Reserve the container.
-      c->in_use = 1;
-      release(&c->cont_lock);
+      c->cont_state = 1;
+      release(&c->lock);
       return index;
     }
-    release(&c->cont_lock);
+    release(&c->lock);
     index++;
   }
   return -1;
 }
 
 int
-return_root(void)
+cstart(int vc_fd, char *name, int maxproc, int maxmem, int maxdisk)
 {
-  acquire(&proc_lock);
-  proc = containers[0].cont_proc;
-  release(&proc_lock);
-  return 0;
-}
-
-int
-cstart(int vc_fd, char *name)
-{
-  int cont_index = alloc_cont();
+  struct container *cont;
+  int cont_index;
+  
+  cont_index = alloc_cont();
   if(cont_index < 1)
     return cont_index;
-  acquire(&proc_lock);
-  proc = containers[cont_index].cont_proc;
-  release(&proc_lock);
 
-  //allocproc();
+  myproc()->cont_id = cont_index;
+
+  cont = mycont();
+  strncpy(cont->name, name, 32);
+
+  //procdump();
+
+  cont->proc_limit = maxproc;
+  cont->mem_limit = maxmem;
+  cont->disk_limit = maxdisk;
+
   return 0;
 }

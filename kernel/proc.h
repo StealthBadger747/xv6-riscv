@@ -107,11 +107,17 @@ struct proc {
 
   // Add a flag for strace functionality
   int traceon;                 // Flag for strace fucntionality, default is 0
+
+  // Container specific values
+  int cont_id;                 // The ID of the corresponding container
 };
+
+enum contstate { EMPTY, CREATED, USED };
 
 // Struct for each container
 struct container {
   int privilege_level;        // 0 signifies root privileges
+  int cont_id;                // The ID for the container aka the index
   char name[32];              // The name of container
   int proc_limit;             // -1 for uninitialized and 0 for infinite
   int mem_limit;              // -1 for uninitialized and 0 for infinite
@@ -123,15 +129,10 @@ struct container {
   int tokens;
 
   // Specifies whether it is in use or not
-  int in_use;                 // 0 not not in use. 1 for in use.
-
-  // Information needed for swaping contexts
-  struct proc cont_proc[NPROC];
-  struct proc *initproc;
-  int nextpid;
+  int cont_state;                 // Value based on enum 'contstate'.
 
   // Lock for container modifications
-  struct spinlock cont_lock;
+  struct spinlock lock;
 };
 
 // Add p_info struct for storing the information of a process in the p_table struct
