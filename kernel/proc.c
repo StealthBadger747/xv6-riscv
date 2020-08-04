@@ -56,6 +56,7 @@ procinit(void)
   containers[0].privilege_level = 0;
   strncpy(containers[0].name, "root container", 32);
   containers[0].cont_state = USED;
+  containers[0].rootdir = namei("/");
 
   kvminithart();
 }
@@ -839,19 +840,24 @@ int
 cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxdisk)
 {
   struct container *cont;
+  struct proc *p;
+  struct inode *ip;
   int cont_index;
   
   cont_index = alloc_cont();
   if(cont_index < 1)
     return cont_index;
 
-  myproc()->cont_id = cont_index;
+  p = myproc();
+
+  p->cont_id = cont_index;
 
   // Set the name of the container and set the process counter to 1.
   cont = mycont();
   strncpy(cont->name, name, 32);
   cont->proc_count = 1;
   cont->cont_state = USED;
+  cont->privilege_level = 1;
 
   //procdump();
 
@@ -861,10 +867,23 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
 
   if(root_path[0] != '/') {
     cont->rootdir_str[0] = '/';
-    //safestrcpy(cont->rootdir_str + 1, root_path, MAXPATH);
+    safestrcpy(cont->rootdir_str + 1, root_path, MAXPATH);
   } else {
-    //safestrcpy(cont->rootdir_str, root_path, MAXPATH);
+    safestrcpy(cont->rootdir_str, root_path, MAXPATH);
   }
+
+  ip = namei(root_path);
+  if(ip == 0) {
+    printf("Invalid root path!\n");
+    return -1;
+  }
+
+  cont->rootdir = ip;
+
+  begin_op();
+  iput(p->cwd);
+  end_op();
+  p->cwd = ip;
 
   return 0;
 }
