@@ -17,7 +17,7 @@ create_vcs(void)
   for (i = 0; i < MAXCONS; i++) {
     dname[2] = '0' + i;
     if ((fd = open(dname, O_RDWR)) < 0){
-      mknod(dname, 2 + i, 1 + i);
+      mknod(dname, 1 + i, 1 + i);
     } else {
       close(fd);
     }
