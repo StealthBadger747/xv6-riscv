@@ -631,17 +631,16 @@ namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
   struct container *c;
-  //struct proc* p;
 
   if(*path == '/')
     ip = iget(ROOTDEV, ROOTINO);
   else
     ip = idup(myproc()->cwd);
 
-  //p = myproc();
   c = mycont();
 
   if(strncmp(path, "..", 2) == 0 && c != 0 && c->rootdir->inum == ip->inum){
+    printf("FOOOOO!\n");
     return ip;
   }
   
