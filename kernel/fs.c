@@ -631,18 +631,34 @@ namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
   struct container *c;
+  char temp_path[MAXPATH];
+
+
+  c = mycont();
+  
+  if(c != 0 && c->privilege_level != 0 && strncmp(path, "..", 2) != 0) {
+    printf("Name: '%s'\n", c->name);
+    printf("OG PATH: '%s'\n", path);
+    printf("c->rootdir_str: '%s'\n", c->rootdir_str);
+    int len = strlen(c->rootdir_str);
+    if(c->rootdir_str[len - 1] != '/')
+      c->rootdir_str[len] = '/';
+    safestrcpy(temp_path, c->rootdir_str, MAXPATH);
+    safestrcpy(temp_path + len, path, MAXPATH);
+    path = temp_path;
+    printf("PATH: '%s'\n", path);
+  }
 
   if(*path == '/')
     ip = iget(ROOTDEV, ROOTINO);
   else
     ip = idup(myproc()->cwd);
 
-  c = mycont();
-
   if(strncmp(path, "..", 2) == 0 && c != 0 && c->rootdir->inum == ip->inum){
     printf("FOOOOO!\n");
     return ip;
   }
+
   
   while((path = skipelem(path, name)) != 0){
     ilock(ip);

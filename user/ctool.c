@@ -128,8 +128,8 @@ main(int argc, char *argv[])
     printf("usage: ctool <subcommand> <vc> <name> <cmd> [<arg> ...]\n");
     exit(-1);
   }
-  printf("%s\n", argv[SUBCMD]);
-  printf("%d\n", strcmp(argv[SUBCMD], "start"));
+  printf("subcommand: '%s'\n", argv[SUBCMD]);
+  //printf("%d\n", strcmp(argv[SUBCMD], "start"));
 
   if(strcmp(argv[SUBCMD], "start") == 0)
     start(argc, argv);

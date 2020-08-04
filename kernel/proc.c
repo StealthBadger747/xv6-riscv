@@ -857,7 +857,6 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
   strncpy(cont->name, name, 32);
   cont->proc_count = 1;
   cont->cont_state = USED;
-  cont->privilege_level = 1;
 
   //procdump();
 
@@ -871,12 +870,20 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
   } else {
     safestrcpy(cont->rootdir_str, root_path, MAXPATH);
   }
+  int len = strlen(cont->rootdir_str);
+  if(cont->rootdir_str[len - 1] != '/') {
+    cont->rootdir_str[len] = '/';
+    cont->rootdir_str[len + 1] = '\0';
+  }
 
+  //cont->privilege_level = 0;
   ip = namei(root_path);
   if(ip == 0) {
     printf("Invalid root path!\n");
     return -1;
   }
+  cont->privilege_level = 1;
+  //cont->privilege_level = 1;
 
   cont->rootdir = ip;
 

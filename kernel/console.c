@@ -221,6 +221,7 @@ consoleintr(int c)
     printf("\nVirtual Console Switched to #%d\n", doconsoleswitch);
     consa = &consoles[doconsoleswitch];
     printf("\nActive console now: vc%d\n", doconsoleswitch);
+    consoleintr('\n');
   }
 }
 

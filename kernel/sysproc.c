@@ -150,6 +150,5 @@ sys_cstart(void)
   if(argint(5, &maxdisk) < 0)
     return -1;
 
-  cstart(fd, name, root_path, maxproc, maxmem, maxdisk);
-  return 0;
+  return cstart(fd, name, root_path, maxproc, maxmem, maxdisk);
 }
