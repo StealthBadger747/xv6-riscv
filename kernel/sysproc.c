@@ -141,7 +141,7 @@ sys_cstart(void)
     return -1;
   if(argstr(1, name, 32) < 0)
     return -1;
-  if(argstr(2, name, 32) < 0)
+  if(argstr(2, root_path, 32) < 0)
     return -1;
   if(argint(3, &maxproc) < 0)
     return -1;

@@ -41,7 +41,8 @@ int cp(char* source, char* destination)
 int
 create(int argc, char **argv)
 {
-  /* ctool create cont /cont sh echo mkdir rm ls */
+  /* ctool create cont sh echo mkdir rm ls cat */
+  // ctool start vc1 /cont foo_cont sh
 
   if(argc < PROG_0) {
     printf("Incomplete argument set.\n");
@@ -113,7 +114,7 @@ start(int argc, char **argv)
     exit(-1);
   }
 
-  // ctool cstart vc0 foo_cont sh
+  // ctool start vc1 /cont foo_cont sh
 
   exit(0);
 }
