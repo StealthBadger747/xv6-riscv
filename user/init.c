@@ -2,6 +2,7 @@
 
 #include "kernel/types.h"
 #include "kernel/stat.h"
+#include "kernel/param.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
@@ -13,10 +14,10 @@ create_vcs(void)
   int i, fd;
   char *dname = "vc0";
 
-  for (i = 0; i < 4; i++) {
+  for (i = 0; i < MAXCONS; i++) {
     dname[2] = '0' + i;
     if ((fd = open(dname, O_RDWR)) < 0){
-      mknod(dname, 2 + i, 0);
+      mknod(dname, 2 + i, 1 + i);
     } else {
       close(fd);
     }
@@ -29,7 +30,7 @@ main(void)
   int pid, wpid;
 
   if(open("console", O_RDWR) < 0){
-    mknod("console", 1, 1);
+    mknod("console", 1, 0);
     open("console", O_RDWR);
   }
   dup(0);  // stdout

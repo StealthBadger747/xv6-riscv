@@ -630,6 +630,11 @@ static struct inode*
 namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
+  struct container *c;
+
+  c = mycont();
+  if(c != 0 && c->privilege_level != 0)
+    path = skipelem(c->rootdir_str, path);
 
   if(*path == '/')
     ip = iget(ROOTDEV, ROOTINO);

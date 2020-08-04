@@ -126,6 +126,7 @@ struct container {
   int mem_usage;              // uninitialized is at 0
   int disk_usage;             // uninitialized is at 0
   struct inode *rootdir;
+  char rootdir_str[MAXPATH];
   int tokens;
 
   // Specifies whether it is in use or not

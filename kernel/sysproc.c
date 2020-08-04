@@ -133,15 +133,23 @@ sys_psget(void)
 uint64
 sys_cstart(void)
 {
-  int fd;
+  int fd, maxproc, maxmem, maxdisk;
   char name[32];
+  char root_path[MAXPATH];
 
   if(argint(0, &fd) < 0)
     return -1;
-
   if(argstr(1, name, 32) < 0)
     return -1;
+  if(argstr(2, name, 32) < 0)
+    return -1;
+  if(argint(3, &maxproc) < 0)
+    return -1;
+  if(argint(4, &maxmem) < 0)
+    return -1;
+  if(argint(5, &maxdisk) < 0)
+    return -1;
 
-  cstart(fd, name, 5, 6, 7);
+  cstart(fd, name, root_path, maxproc, maxmem, maxdisk);
   return 0;
 }

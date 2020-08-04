@@ -71,6 +71,10 @@ uartputc(int c)
 int
 uartgetc(void)
 {
+  /*printf("---------------------------------------------\n");
+  printf("LSR: '%d', '%d'\n", ReadReg(LSR) & 0x01, ReadReg(LSR) & 0x01);
+  printf("RHR: '%d', '%d', '%d', '%d', '%d'\n", ReadReg(RHR), ReadReg(RHR), ReadReg(RHR), ReadReg(RHR), ReadReg(RHR));
+  printf("---------------------------------------------\n"); */
   if(ReadReg(LSR) & 0x01){
     // input data is ready.
     return ReadReg(RHR);
@@ -85,8 +89,25 @@ uartintr(void)
 {
   while(1){
     int c = uartgetc();
-    if(c == -1)
+    if(c == 27) {
+      c = uartgetc();
+      if(c == 79)
+        consoleintr(uartgetc() - 80 + 200);
+      else if(c == 91 && uartgetc() == 49) {
+        c = uartgetc();
+        if(c == 53)
+          consoleintr(204), uartgetc();
+        else if(c == 55)
+          consoleintr(205), uartgetc();
+        else if(c == 56)
+          consoleintr(206), uartgetc();
+        else if(c == 57)
+          consoleintr(207), uartgetc();
+      }
+    }
+    else if(c == -1)
       break;
-    consoleintr(c);
+    else
+        consoleintr(c);
   }
 }

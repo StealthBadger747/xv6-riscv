@@ -94,6 +94,7 @@ int             kill(int);
 struct cpu*     mycpu(void);
 struct cpu*     getmycpu(void);
 struct proc*    myproc();
+struct container*    mycont();
 void            procinit(void);
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
@@ -110,7 +111,7 @@ int             numprocs(void);
 void            traceon(void);
 void            psget(struct p_table *pt);
 int             ksuspend(int, struct file *);
-int				cstart(int vc_fd, char *name, int, int, int);
+int				cstart(int vc_fd, char *name, char *root_path, int, int, int);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

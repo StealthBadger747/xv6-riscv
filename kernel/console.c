@@ -57,11 +57,9 @@ struct console {
   uint e;  // Edit index
 };
 
-
 static int active = 1;
 
-struct console cons1;
-struct console cons2;
+struct console consoles[MAXCONS];
 struct console *consa;
 
 //
@@ -152,7 +150,7 @@ consoleread(struct console *cons, int user_dst, uint64 dst, int n)
 void
 consoleintr(int c)
 {
-  int doconsoleswitch = 0;
+  int doconsoleswitch = -1;
   acquire(&consa->lock);
 
   switch(c){
@@ -173,8 +171,29 @@ consoleintr(int c)
       consputc(BACKSPACE);
     }
     break;
-  case C('T'):
+  case 200: // F1
+    doconsoleswitch = 0;
+    break;
+  case 201:
     doconsoleswitch = 1;
+    break;
+  case 202:
+    doconsoleswitch = 2;
+    break;
+  case 203:
+    doconsoleswitch = 3;
+    break;
+  case 204:
+    doconsoleswitch = 4;
+    break;
+  case 205:
+    doconsoleswitch = 5;
+    break;
+  case 206:
+    doconsoleswitch = 6;
+    break;
+  case 207:
+    doconsoleswitch = 7;
     break;
   default:
     if(c != 0 && consa->e-consa->r < INPUT_BUF){
@@ -198,68 +217,61 @@ consoleintr(int c)
   
   release(&consa->lock);
 
-  if(doconsoleswitch){
-    if(active == 1){
-      printf("Virtual Console Activating...\n");
-      active = 2;
-      consa = &cons2;
-    } else {
-      printf("Virtual Console Deactivating...\n");
-      active = 1;
-      consa = &cons1;
-    } 
-
-    printf("\nActive console now: %d\n", active);
+  if(doconsoleswitch > -1){
+    printf("Virtual Console Switched to #%d\n", doconsoleswitch);
+    consa = &consoles[doconsoleswitch];
+    printf("\nActive console now: vc%d\n", doconsoleswitch);
   }
 }
 
 int
-cread1(int user_dst, uint64 dst, int n)
+cread(int minor, int user_dst, uint64 dst, int n)
 {
-  return consoleread(&cons1, user_dst, dst, n);
+  return consoleread(&consoles[minor], user_dst, dst, n);
 }
 
 int
-cwrite1(int user_src, uint64 src, int n)
+cwrite(int minor, int user_src, uint64 src, int n)
 {
-  return consolewrite(&cons1, user_src, src, n);
-}
-
-int
-cread2(int user_dst, uint64 dst, int n)
-{
-  return consoleread(&cons2, user_dst, dst, n);
-}
-
-int
-cwrite2(int user_src, uint64 src, int n)
-{
-  return consolewrite(&cons2, user_src, src, n);
+  return consolewrite(&consoles[minor], user_src, src, n);
 }
 
 void
 consoleinit(void)
 {
-  initlock(&cons1.lock, "cons1");
-  cons1.r = 0;
-  cons1.w = 0;
-  cons1.e = 0;
+  char lock_name[] = "cons0";
+  // This will break if there are more than 10 consoles
+  if(MAXCONS > 10)
+    printf("WARNING!!!! 'MAXCONS' is too high and will cause issues!\n");
 
+  for(int i = 0; i < MAXCONS; i++) {
+    lock_name[4] = '0' + i;
+    initlock(&consoles[i].lock, lock_name);
+    consoles[i].r = 0;
+    consoles[i].w = 0;
+    consoles[i].e = 0;
+  }
+/*
   initlock(&cons2.lock, "cons2");
   cons2.r = 0;
   cons2.w = 0;
   cons2.e = 0;
-
-  consa = &cons1;
+*/
+  consa = &consoles[0];
   active = 1;
 
   uartinit();
 
   // connect read and write system calls
   // to consoleread and consolewrite.
-  devsw[CONSOLE1].read = cread1;
+  for(int i = 1; i <= MAXCONS; i++) {
+    devsw[i].read = cread;
+    devsw[i].write = cwrite;
+  }
+
+  /*devsw[CONSOLE1].read = cread1;
   devsw[CONSOLE1].write = cwrite1;
 
   devsw[CONSOLE2].read = cread2;
-  devsw[CONSOLE2].write = cwrite2;
+  devsw[CONSOLE2].write = cwrite2;*/
 }

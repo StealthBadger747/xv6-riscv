@@ -96,6 +96,8 @@ struct container *
 mycont(void)
 {
   struct proc *p = myproc();
+  if(p == 0)
+    return 0;
   struct container *c = &containers[p->cont_id];
   return c;
 }
@@ -821,7 +823,7 @@ alloc_cont(void)
   int index = 1;
   for(; c <= &containers[NCONT]; c++) {
     acquire(&c->lock);
-    if(c->cont_state == 0) {
+    if(c->cont_state == EMPTY || c->cont_state == CREATED) {
       // Reserve the container.
       c->cont_state = 1;
       release(&c->lock);
@@ -834,7 +836,7 @@ alloc_cont(void)
 }
 
 int
-cstart(int vc_fd, char *name, int maxproc, int maxmem, int maxdisk)
+cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxdisk)
 {
   struct container *cont;
   int cont_index;
@@ -845,14 +847,24 @@ cstart(int vc_fd, char *name, int maxproc, int maxmem, int maxdisk)
 
   myproc()->cont_id = cont_index;
 
+  // Set the name of the container and set the process counter to 1.
   cont = mycont();
   strncpy(cont->name, name, 32);
+  cont->proc_count = 1;
+  cont->cont_state = USED;
 
   //procdump();
 
   cont->proc_limit = maxproc;
   cont->mem_limit = maxmem;
   cont->disk_limit = maxdisk;
+
+  if(root_path[0] != '/') {
+    cont->rootdir_str[0] = '/';
+    //safestrcpy(cont->rootdir_str + 1, root_path, MAXPATH);
+  } else {
+    //safestrcpy(cont->rootdir_str, root_path, MAXPATH);
+  }
 
   return 0;
 }
