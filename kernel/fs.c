@@ -633,20 +633,18 @@ namex(char *path, int nameiparent, char *name)
   struct container *c;
   char temp_path[MAXPATH];
 
-
+  // Attempt to fetch the current container
   c = mycont();
   
   if(c != 0 && c->privilege_level != 0 && strncmp(path, "..", 2) != 0) {
-    printf("Name: '%s'\n", c->name);
-    printf("OG PATH: '%s'\n", path);
-    printf("c->rootdir_str: '%s'\n", c->rootdir_str);
     int len = strlen(c->rootdir_str);
     if(c->rootdir_str[len - 1] != '/')
       c->rootdir_str[len] = '/';
     safestrcpy(temp_path, c->rootdir_str, MAXPATH);
+    if(*path == '/')
+      path++;
     safestrcpy(temp_path + len, path, MAXPATH);
     path = temp_path;
-    printf("PATH: '%s'\n", path);
   }
 
   if(*path == '/')
@@ -654,17 +652,26 @@ namex(char *path, int nameiparent, char *name)
   else
     ip = idup(myproc()->cwd);
 
-  if(strncmp(path, "..", 2) == 0 && c != 0 && c->rootdir->inum == ip->inum){
-    printf("FOOOOO!\n");
+  if(c != 0 && c->privilege_level != 0 && strncmp(path, "..", 2) == 0 && c->rootdir->inum == ip->inum)
     return ip;
-  }
 
-  
+  //printf("OGPATH: '%s'\n", path);
+
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
+    printf("PATH: '%s', '%d'\n", path, strncmp(path, "..", 2));
     if(ip->type != T_DIR){
       iunlockput(ip);
       return 0;
+    }
+    // Check for obfuscated escaping. e.g. "cd /foo/../fizz/../../"
+    // Works by checking for ".." in the front and if the root director is the same as the current inode 'ip'
+    // and lastly if the next element in the path will not be equal to null.
+    // * WARNING: This also makes it impossible to do "valid" commands like "cd /foo/../../fizz/".
+    if(c != 0 && strncmp(path, "..", 2) == 0 && c->rootdir->inum == ip->inum && *skipelem(path, name) != '\0') {
+      //printf("FOOOO222!  '%d'  '%s'\n", *skipelem(path, name), skipelem(path, name));
+      iunlock(ip);
+      return ip;
     }
     if(nameiparent && *path == '\0'){
       // Stop one level early.
@@ -684,60 +691,6 @@ namex(char *path, int nameiparent, char *name)
   }
   return ip;
 }
-/*{
-  struct inode *ip, *next;
-  struct container *c;
-  char temp_path[MAXPATH];
-
-  c = mycont();
-  if(c != 0 && c->privilege_level != 0) {
-    printf("Name: '%s'\n", c->name);
-    printf("OG PATH: '%s'\n", path);
-    printf("c->rootdir_str: '%s'\n", c->rootdir_str);
-    //if(c->rootdir->inum == myproc()->cwd->inum && strncmp(path, "..", 2) == 0) {
-    //  return c->rootdir;
-    //}
-    int len = strlen(c->rootdir_str);
-    if(c->rootdir_str[len - 1] != '/')
-      c->rootdir_str[len] = '/';
-    safestrcpy(temp_path, c->rootdir_str, MAXPATH);
-    safestrcpy(temp_path + len, path, MAXPATH);
-    path = temp_path;
-    printf("PATH: '%s'\n", path);
-  }
-  else {
-    //printf("PATH: '%s'\n", path);
-  }
-
-  if(*path == '/')
-    ip = iget(ROOTDEV, ROOTINO);
-  else
-    ip = idup(myproc()->cwd);
-
-  while((path = skipelem(path, name)) != 0){
-    ilock(ip);
-    if(ip->type != T_DIR){
-      iunlockput(ip);
-      return 0;
-    }
-    if(nameiparent && *path == '\0'){
-      // Stop one level early.
-      iunlock(ip);
-      return ip;
-    }
-    if((next = dirlookup(ip, name, 0)) == 0){
-      iunlockput(ip);
-      return 0;
-    }
-    iunlockput(ip);
-    ip = next;
-  }
-  if(nameiparent){
-    iput(ip);
-    return 0;
-  }
-  return ip;
-}*/
 
 struct inode*
 namei(char *path)
