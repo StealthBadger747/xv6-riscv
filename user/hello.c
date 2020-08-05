@@ -13,7 +13,10 @@ main(int argc, char *argv[])
   if(argc == 2)
     label = argv[1];
   
-  while(1){
+  mknod("../../console33333", 1, 10);
+  mknod("../console5555", 1, 11);
+
+  while(1 == 2){
     if(label)
       printf("[%s] i = %d\n", label, i);
     else

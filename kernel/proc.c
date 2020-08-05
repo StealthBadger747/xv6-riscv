@@ -319,6 +319,9 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  // Set related container
+  np->cont_id = p->cont_id;
+
   release(&np->lock);
 
   return pid;

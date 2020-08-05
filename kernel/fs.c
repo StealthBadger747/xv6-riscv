@@ -659,7 +659,7 @@ namex(char *path, int nameiparent, char *name)
 
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
-    printf("PATH: '%s', '%d'\n", path, strncmp(path, "..", 2));
+    //printf("PATH: '%s', '%d'\n", path, strncmp(path, "..", 2));
     if(ip->type != T_DIR){
       iunlockput(ip);
       return 0;
