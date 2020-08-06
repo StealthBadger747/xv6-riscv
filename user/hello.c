@@ -15,6 +15,8 @@ main(int argc, char *argv[])
   
   mknod("../../console33333", 1, 10);
   mknod("../console5555", 1, 11);
+  mkdir("../monstermash");
+  mkdir("../../funkymash");
 
   while(1 == 2){
     if(label)

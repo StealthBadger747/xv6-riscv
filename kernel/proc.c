@@ -642,10 +642,12 @@ int
 kill(int pid)
 {
   struct proc *p;
+  int this_cont_id;
+  this_cont_id = myproc()->cont_id;
 
   for(p = proc; p < &proc[NPROC]; p++){
     acquire(&p->lock);
-    if(p->pid == pid){
+    if(p->pid == pid && (p->cont_id == this_cont_id || this_cont_id == 0)){
       p->killed = 1;
       if(p->state == SLEEPING || p->state == SUSPENDED){
         // Wake process from sleep().
