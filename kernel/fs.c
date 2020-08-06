@@ -532,6 +532,7 @@ dirlookup(struct inode *dp, char *name, uint *poff)
 {
   uint off, inum;
   struct dirent de;
+  //printf("NAME: '%s'\n");
 
   if(dp->type != T_DIR)
     panic("dirlookup not DIR");
@@ -546,10 +547,13 @@ dirlookup(struct inode *dp, char *name, uint *poff)
       if(poff)
         *poff = off;
       inum = de.inum;
+      //printf("name: '%s',  de.name: '%s'\n", name, de.name);
+      //printf("FOUND!\n");
       return iget(dp->dev, inum);
     }
   }
 
+  //printf("NOT FOUND!\n");
   return 0;
 }
 
@@ -669,7 +673,7 @@ namex(char *path, int nameiparent, char *name)
     // and lastly if the next element in the path will not be equal to null.
     // * WARNING: This also makes it impossible to do "valid" commands like "cd /foo/../../fizz/".
     if(c != 0 && strncmp(path, "..", 2) == 0 && c->rootdir->inum == ip->inum && *skipelem(path, name) != '\0') {
-      //printf("FOOOO222!  '%d'  '%s'\n", *skipelem(path, name), skipelem(path, name));
+      printf("FOOOO222!  '%d'  '%s'\n", *skipelem(path, name), skipelem(path, name));
       iunlock(ip);
       return ip;
     }

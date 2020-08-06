@@ -888,9 +888,8 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
   cont->privilege_level = 1;
   //cont->privilege_level = 1;
 
-  cont->rootdir = ip;
-
   begin_op();
+  cont->rootdir = idup(ip);
   iput(p->cwd);
   end_op();
   p->cwd = ip;

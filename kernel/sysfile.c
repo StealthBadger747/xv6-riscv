@@ -260,15 +260,18 @@ create(char *path, short type, short major, short minor)
 {
   struct inode *ip, *dp;
   char name[DIRSIZ];
-  printf("OGName, '%s'\n", name);
+  //printf("OGName, '%s'\n", name);
 
   if((dp = nameiparent(path, name)) == 0)
     return 0;
 
+  if(*name == '\0')
+    return 0;
+
   ilock(dp);
 
-  printf("Path, '%s'\n", path);
-  printf("Name, '%s'\n", name);
+  //printf("Path, '%s'\n", path);
+  //printf("Name, '%s'\n", name);
 
   if((ip = dirlookup(dp, name, 0)) != 0){
     iunlockput(dp);
@@ -278,10 +281,13 @@ create(char *path, short type, short major, short minor)
     iunlockput(ip);
     return 0;
   }
+  //printf("ip inum: '%d'\n", ip);
+  //printf("dp inum: '%d'\n", dp);
 
   if((ip = ialloc(dp->dev, type)) == 0)
     panic("create: ialloc");
 
+  //printf("HELLO THERE!!!\n");
   ilock(ip);
   ip->major = major;
   ip->minor = minor;
