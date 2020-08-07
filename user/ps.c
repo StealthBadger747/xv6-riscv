@@ -6,8 +6,9 @@
 struct p_info {
   int pid;
   uint64 sz;
-  char state[16];
-  char name[16];
+  char state[16];                  // The state of the process
+  char name_ps[16];                // The name of process
+  char name_cont[32];              // The name of container
 };
 
 // Add p_table struct for the ps command to use
@@ -23,7 +24,7 @@ main(int argc, char *argv[])
   struct p_table pt;
   psget(&pt);
   for(int i = 0; i < pt.p_count; i++){
-    printf("%d\t%dK\t%s\t%s\n", pt.table[i].pid, pt.table[i].sz / 1024, pt.table[i].state, pt.table[i].name);
+    //printf("%d\t%dK\t%s\t%s\n", pt.table[i].pid, pt.table[i].sz / 1024, pt.table[i].state, pt.table[i].name);
   }
     
   exit(0);

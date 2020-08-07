@@ -57,6 +57,7 @@ procinit(void)
   containers[0].state = RUNNABLE;
   containers[0].rootdir = namei("/");
   containers[0].proc_limit = NPROC;
+  containers[0].proc_count = 1;
 
   kvminithart();
 }
@@ -145,6 +146,11 @@ found:
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
+  if(p->pagetable == 0) {
+    kfree(p->tf);
+    release(&p->lock);
+    return 0;
+  }
 
   // Set up new context to start executing at forkret,
   // which returns to user space.
@@ -194,6 +200,10 @@ proc_pagetable(struct proc *p)
 
   // An empty page table.
   pagetable = uvmcreate();
+  if(pagetable == 0) {
+    printf("proc_pagetable failed to allocate!\n");
+    return 0;
+  }
 
   // map the trampoline code (for system call return)
   // at the highest user virtual address.
@@ -286,6 +296,20 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
+  struct container *c;
+
+  // Check if it will be over process limit
+  if((c = &containers[p->cont_id]) != 0) {
+    acquire(&c->lock);
+    //printf("Limit: '%d', Count: '%d'\n", c->proc_limit, c->proc_count);
+    if(c->privilege_level != 0 && c->proc_limit <= c->proc_count) {
+      release(&c->lock);
+      printf("Process limit reached!\n");
+      procdump();
+      return -1;
+    }
+    release(&c->lock);
+  }
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -323,11 +347,14 @@ fork(void)
   // Set related container
   np->cont_id = p->cont_id;
 
-    // change container counter
-  struct container *c = &containers[np->cont_id];
-  acquire(&c->lock);
-  c->proc_count++;
-  release(&c->lock);
+  // change container id
+  //struct container *c = &containers[np->cont_id];
+  if(c != 0) {
+    acquire(&c->lock);
+    printf("ADDING!\n");
+    c->proc_count++;
+    release(&c->lock);
+  }
 
   release(&np->lock);
 
@@ -525,11 +552,13 @@ scheduler(void)
         release(&cont->lock);
         continue;
       }
-      cont->tokens++;
       release(&cont->lock);
       for(p = proc; p < &proc[NPROC]; p++) {
         acquire(&p->lock);
         if(p->cont_id == cont->cont_id && p->state == RUNNABLE && cont->state == RUNNABLE) {
+          acquire(&cont->lock);
+          cont->tokens++;
+          release(&cont->lock);
           // Switch to chosen process.  It is the process's job
           // to release its lock and then reacquire it
           // before jumping back to us.
@@ -766,14 +795,14 @@ procdump(void)
     printf(" ");
   printf("\tMEM(KB)\tPROCS\tTOKENS\n");
   for(c = containers; c < &containers[NCONT]; c++) {
-    acquire(&c->lock);
+    //acquire(&c->lock);
     if(c->state == RUNNABLE || c->state == RUNNING) {
       printf("'%s'", c->name);
       for(int i = 0; i < sizeof(c->name) - strlen(c->name) + 2; i++)
         printf(" ");
       printf("%d\t%d\t%d\n", (c->mem_usage * PGSIZE) / 1024, c->proc_count, c->tokens);
     }
-    release(&c->lock);
+    //release(&c->lock);
   }
   printf("---------------------------------------------------\n");
 
