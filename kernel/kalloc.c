@@ -77,8 +77,8 @@ kalloc(void)
   struct run *r;
 
   c = mycont();
-  //if(c != 0 && c->mem_limit == c->mem_usage && c->privilege_level != 0)
-  //  return 0;
+  if(c != 0 && c->mem_limit == c->mem_usage && c->privilege_level != 0)
+    return 0;
 
   acquire(&kmem.lock);
   r = kmem.freelist;
