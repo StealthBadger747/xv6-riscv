@@ -90,7 +90,6 @@ start(int argc, char **argv)
 
   fd = open(argv[VC_FILE_NAME], O_RDWR);
   printf("fd = %d\n", fd);
-  close(fd);
 
   maxproc = atoi(argv[MAX_PROC]);
   maxmem = atoi(argv[MAX_MEM]);

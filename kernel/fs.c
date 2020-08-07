@@ -659,7 +659,7 @@ namex(char *path, int nameiparent, char *name)
   if(c != 0 && c->privilege_level != 0 && strncmp(path, "..", 2) == 0 && c->rootdir->inum == ip->inum)
     return ip;
 
-  printf("OGPATH: '%s'\n", path);
+  //printf("OGPATH: '%s'\n", path);
 
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
@@ -673,7 +673,7 @@ namex(char *path, int nameiparent, char *name)
     // and lastly if the next element in the path will not be equal to null.
     // * WARNING: This also makes it impossible to do "valid" commands like "cd /foo/../../fizz/".
     if(c != 0 && strncmp(path, "..", 2) == 0 && c->rootdir->inum == ip->inum && *skipelem(path, name) != '\0') {
-      printf("FOOOO222!  '%d'  '%s'\n", *skipelem(path, name), skipelem(path, name));
+      //printf("FOOOO222!  '%d'  '%s'\n", *skipelem(path, name), skipelem(path, name));
       iunlock(ip);
       return ip;
     }
@@ -700,7 +700,6 @@ struct inode*
 namei(char *path)
 {
   char name[DIRSIZ];
-  printf("INUM: '%d'\n", namex(path, 0, name)->inum);
   return namex(path, 0, name);
 }
 
