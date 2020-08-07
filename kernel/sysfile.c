@@ -259,7 +259,7 @@ static struct inode*
 create(char *path, short type, short major, short minor)
 {
   struct inode *ip, *dp;
-  char name[DIRSIZ];
+  char name[DIRSIZ] = { 0 };
   //printf("OGName, '%s'\n", name);
 
   if((dp = nameiparent(path, name)) == 0)

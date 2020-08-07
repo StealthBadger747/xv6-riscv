@@ -19,13 +19,11 @@ main()
     kinit();         // physical page allocator
     kvminit();       // create kernel page table
     kvminithart();   // turn on paging
-	printf("b4\n");
     procinit();      // process table
     trapinit();      // trap vectors
     trapinithart();  // install kernel trap vector
     plicinit();      // set up interrupt controller
-	//procdump();
-	printf("af\n");
+	procdump();
     plicinithart();  // ask PLIC for device interrupts
     binit();         // buffer cache
     iinit();         // inode cache

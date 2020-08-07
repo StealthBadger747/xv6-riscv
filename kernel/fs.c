@@ -659,7 +659,7 @@ namex(char *path, int nameiparent, char *name)
   if(c != 0 && c->privilege_level != 0 && strncmp(path, "..", 2) == 0 && c->rootdir->inum == ip->inum)
     return ip;
 
-  //printf("OGPATH: '%s'\n", path);
+  printf("OGPATH: '%s'\n", path);
 
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
@@ -700,6 +700,7 @@ struct inode*
 namei(char *path)
 {
   char name[DIRSIZ];
+  printf("INUM: '%d'\n", namex(path, 0, name)->inum);
   return namex(path, 0, name);
 }
 

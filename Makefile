@@ -138,6 +138,7 @@ UPROGS=\
 	$U/_vctest \
 	$U/_free\
 	$U/_ctool\
+	$U/_forkbomb\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

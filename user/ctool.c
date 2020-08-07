@@ -8,7 +8,8 @@
 #include "user/user.h"
 
 enum ctool_args { CTOOL, SUBCMD };
-enum start_args { BL0, BL1, VC_FILE_NAME, ROOT_DIR, NAME, CMD, ARG0, ARG1, ARG2, ARG3, ARG4 };
+enum start_args { BL0, BL1, VC_FILE_NAME, ROOT_DIR, NAME, MAX_PROC, MAX_MEM, 
+                  MAX_DISK, CMD, ARG0, ARG1, ARG2, ARG3, ARG4 };
 enum creat_args { BL2, BL3, CONT_DIR, PROG_0, PROG_1, PROG_2, PROG_3, PROG_4 };
 
 int cp(char* source, char* destination)
@@ -85,9 +86,27 @@ int
 start(int argc, char **argv)
 {
   int fd, id;
+  int maxproc, maxmem, maxdisk;
 
   fd = open(argv[VC_FILE_NAME], O_RDWR);
   printf("fd = %d\n", fd);
+  close(fd);
+
+  maxproc = atoi(argv[MAX_PROC]);
+  maxmem = atoi(argv[MAX_MEM]);
+  maxdisk = atoi(argv[MAX_DISK]);
+
+  printf("'%d' '%d' '%d'\n", maxproc, maxmem, maxdisk);
+
+  if(maxproc < 1 || maxdisk < 10) {
+    printf("Invalid values!\n");
+    return -1;
+  }
+
+  if(maxmem < 50) {
+    printf("Memory needs to be greater than 50 for the container to work!\n");
+    return -1;
+  }
 
   /* fork a child and exec argv[1] */
   id = fork();
@@ -99,22 +118,21 @@ start(int argc, char **argv)
     dup(fd);
     dup(fd);
     dup(fd);
-    if(cstart(fd, argv[NAME], argv[ROOT_DIR], 5, 6, 7) < 0)
+    if(cstart(fd, argv[NAME], argv[ROOT_DIR], maxproc, maxmem, maxdisk) < 0) {
+      printf("FAILLLLL!\n");
       goto cstart_fail;
+    }
 
     printf("%s started on %s\n", argv[CMD], argv[VC_FILE_NAME]);
     
-    if(exec(argv[CMD], &argv[CMD]) < 0)
-      goto cstart_fail;
+    printf("Exec() status: '%d'\n", exec(argv[CMD], &argv[CMD]));
 
     exit(0);
 
-  cstart_fail:
+cstart_fail:
     printf("start() failed!\n");
     exit(-1);
   }
-
-  // ctool start vc1 /cont foo_cont sh
 
   exit(0);
 }

@@ -150,5 +150,15 @@ sys_cstart(void)
   if(argint(5, &maxdisk) < 0)
     return -1;
 
+  if(maxproc < 1 || maxdisk < 10) {
+    printf("Invalid values!\n");
+    return -1;
+  }
+
+  if(maxmem < 50) {
+    printf("Memory needs to be greater than 50 for the container to work!\n");
+    return -1;
+  }
+
   return cstart(fd, name, root_path, maxproc, maxmem, maxdisk);
 }

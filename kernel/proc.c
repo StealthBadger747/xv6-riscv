@@ -56,8 +56,7 @@ procinit(void)
   strncpy(containers[0].name, "root container", 32);
   containers[0].state = RUNNABLE;
   containers[0].rootdir = namei("/");
-
-  printf("INUM:  '%x'\n", containers[0].rootdir);
+  containers[0].proc_limit = NPROC;
 
   kvminithart();
 }
@@ -747,7 +746,8 @@ procdump(void)
   struct container *c;
   char *state;
 
-  printf("\n--------------  PROC DUMP  --------------\n");
+  printf("\n-------------------  PROC DUMP  -------------------\n");
+  printf("PID\tSTATE\tNAMES\tCONTAINER\n");
   for(p = proc; p < &proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
@@ -756,25 +756,26 @@ procdump(void)
     else
       state = "???";
     c = &containers[p->cont_id];
-    printf("%d %s %s \t'%s'\t", p->pid, state, p->name, c->name);
+    printf("%d\t%s\t%s\t'%s'\t", p->pid, state, p->name, c->name);
     printf("\n");
   }
-  printf("-----------------------------------------\n");
-  printf("---------- CONTAINER CPU TIMES ----------\n");
-  for(int i = 0; i < sizeof(containers[0].name) + 2; i++)
+  printf("---------------------------------------------------\n");
+  printf("---------------- CONTAINER USEAGES ----------------\n");
+  printf("NAMES");
+  for(int i = 0; i < sizeof(containers[0].name) - 3; i++)
     printf(" ");
-  printf("\tTOKENS\tPROCESSES\n");
+  printf("\tMEM(KB)\tPROCS\tTOKENS\n");
   for(c = containers; c < &containers[NCONT]; c++) {
     acquire(&c->lock);
     if(c->state == RUNNABLE || c->state == RUNNING) {
       printf("'%s'", c->name);
       for(int i = 0; i < sizeof(c->name) - strlen(c->name) + 2; i++)
         printf(" ");
-      printf("%d\t%d\n", c->tokens, c->proc_count);
+      printf("%d\t%d\t%d\n", (c->mem_usage * PGSIZE) / 1024, c->proc_count, c->tokens);
     }
     release(&c->lock);
   }
-  printf("-----------------------------------------\n");
+  printf("---------------------------------------------------\n");
 
 }
 
@@ -907,6 +908,25 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
   struct proc *p;
   struct inode *ip;
   int cont_index;
+  char temp_path[MAXPATH];
+
+  if(root_path[0] != '/') {
+    temp_path[0] = '/';
+    safestrcpy(temp_path + 1, root_path, MAXPATH);
+  } else {
+    safestrcpy(temp_path, root_path, MAXPATH);
+  }
+  int len = strlen(temp_path);
+  if(temp_path[len - 1] != '/') {
+    temp_path[len] = '/';
+    temp_path[len + 1] = '\0';
+  }
+
+  ip = namei(temp_path);
+  if(ip == 0) {
+    printf("Invalid root path!\n");
+    return -1;
+  }
   
   cont_index = alloc_cont();
   if(cont_index < 1)
@@ -922,34 +942,23 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
   strncpy(cont->name, name, sizeof(cont->name));
   cont->proc_count = 1;
   cont->state = RUNNABLE;
+
+  // Cleanup process counter from parent as well as subracting 1 page of memory
+  // and adding that memory usage to here.
   p_cont = &containers[p->parent->cont_id];
   acquire(&p_cont->lock);
   p_cont->proc_count--;
+  p_cont->mem_usage -= 9;
   release(&p_cont->lock);
 
+  cont->mem_usage += 9;
   cont->proc_limit = maxproc;
   cont->mem_limit = maxmem;
   cont->disk_limit = maxdisk;
-
-  if(root_path[0] != '/') {
-    cont->rootdir_str[0] = '/';
-    safestrcpy(cont->rootdir_str + 1, root_path, MAXPATH);
-  } else {
-    safestrcpy(cont->rootdir_str, root_path, MAXPATH);
-  }
-  int len = strlen(cont->rootdir_str);
-  if(cont->rootdir_str[len - 1] != '/') {
-    cont->rootdir_str[len] = '/';
-    cont->rootdir_str[len + 1] = '\0';
-  }
-  release(&cont->lock);
-
-  ip = namei(root_path);
-  if(ip == 0) {
-    printf("Invalid root path!\n");
-    return -1;
-  }
   cont->privilege_level = 1;
+  safestrcpy(cont->rootdir_str, temp_path, MAXPATH);
+  
+  release(&cont->lock);
 
   begin_op();
   cont->rootdir = idup(ip);
