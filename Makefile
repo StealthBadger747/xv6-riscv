@@ -137,6 +137,7 @@ UPROGS=\
 	$U/_resume \
 	$U/_vctest \
 	$U/_free\
+	$U/_df\
 	$U/_ctool\
 	$U/_forkbomb\
 

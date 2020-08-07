@@ -344,14 +344,12 @@ fork(void)
 
   np->state = RUNNABLE;
 
-  // Set related container
+  // Set related container id
   np->cont_id = p->cont_id;
 
-  // change container id
-  //struct container *c = &containers[np->cont_id];
+  // Increment process counter for the container
   if(c != 0) {
     acquire(&c->lock);
-    printf("ADDING!\n");
     c->proc_count++;
     release(&c->lock);
   }

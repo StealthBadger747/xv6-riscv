@@ -130,6 +130,13 @@ sys_psget(void)
   return status;
 }
 
+// Returns the privlege level based on container
+uint64
+sys_mypriv(void)
+{
+  return mycont()->privilege_level;
+}
+
 uint64
 sys_cstart(void)
 {

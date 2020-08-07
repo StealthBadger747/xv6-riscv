@@ -30,6 +30,7 @@ void psget(struct p_table*);
 int suspend(int, int);
 int resume(char *);
 int cstart(int, char *, char *, int, int, int);
+int mypriv(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

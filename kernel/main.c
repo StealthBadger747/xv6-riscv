@@ -23,7 +23,6 @@ main()
     trapinit();      // trap vectors
     trapinithart();  // install kernel trap vector
     plicinit();      // set up interrupt controller
-	procdump();
     plicinithart();  // ask PLIC for device interrupts
     binit();         // buffer cache
     iinit();         // inode cache
