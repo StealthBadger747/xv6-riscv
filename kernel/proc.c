@@ -51,12 +51,13 @@ procinit(void)
     initlock(&c->lock, lock_name);
   }
 
-  kvminithart();
   // Assign the first container to root privileges.
   containers[0].privilege_level = 0;
   strncpy(containers[0].name, "root container", 32);
-  containers[0].cont_state = USED;
+  containers[0].state = RUNNABLE;
   containers[0].rootdir = namei("/");
+
+  printf("INUM:  '%x'\n", containers[0].rootdir);
 
   kvminithart();
 }
@@ -164,6 +165,9 @@ found:
 static void
 freeproc(struct proc *p)
 {
+  //struct container *c;
+  //printf("FREEEEEEE!!!  '%s'\n", p->name);
+
   if(p->tf) {
     kfree((void*)p->tf);
   }
@@ -179,8 +183,6 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
-
-  mycont()->proc_count--;
   p->cont_id = 0;
 }
 
@@ -322,9 +324,29 @@ fork(void)
   // Set related container
   np->cont_id = p->cont_id;
 
+    // change container counter
+  struct container *c = &containers[np->cont_id];
+  acquire(&c->lock);
+  c->proc_count++;
+  release(&c->lock);
+
   release(&np->lock);
 
   return pid;
+}
+
+// Create a new process, copying the parent.
+// Sets up child kernel stack to return as if from fork() system call.
+int
+cfork(void) {
+  struct container *c;
+  int pid = fork();
+
+  c = &containers[proc[pid].cont_id];
+  acquire(&c->lock);
+  c->proc_count--;
+  release(&c->lock);
+  return fork();
 }
 
 // Pass p's abandoned children to init.
@@ -453,6 +475,12 @@ wait(uint64 addr)
             release(&p->lock);
             return -1;
           }
+          // change container counter
+          struct container *c = &containers[p->cont_id];
+          acquire(&c->lock);
+          if(c->proc_count > 0)
+            c->proc_count--;
+          release(&c->lock);
           freeproc(np);
           release(&np->lock);
           release(&p->lock);
@@ -484,6 +512,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct container *cont;
   struct cpu *c = mycpu();
   
   c->proc = 0;
@@ -491,25 +520,34 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->scheduler, &p->context);
-
-        // Check for suspended process
-        if(p->suspended)
-          exit(-1);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
+    for(cont = containers; cont < &containers[NCONT]; cont++) {
+      acquire(&cont->lock);
+      if(cont->state != RUNNABLE) {
+        release(&cont->lock);
+        continue;
       }
-      release(&p->lock);
+      cont->tokens++;
+      release(&cont->lock);
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->cont_id == cont->cont_id && p->state == RUNNABLE && cont->state == RUNNABLE) {
+          // Switch to chosen process.  It is the process's job
+          // to release its lock and then reacquire it
+          // before jumping back to us.
+          p->state = RUNNING;
+          c->proc = p;
+          swtch(&c->scheduler, &p->context);
+
+          // Check for suspended process
+          if(p->suspended)
+            exit(-1);
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+        release(&p->lock);
+      }
     }
   }
 }
@@ -706,9 +744,10 @@ procdump(void)
   [SUSPENDED] "suspended"
   };
   struct proc *p;
+  struct container *c;
   char *state;
 
-  printf("\n-------  PROC DUMP  -------\n");
+  printf("\n--------------  PROC DUMP  --------------\n");
   for(p = proc; p < &proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
@@ -716,10 +755,27 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s \t'%s'", p->pid, state, p->name, containers[p->cont_id].name);
+    c = &containers[p->cont_id];
+    printf("%d %s %s \t'%s'\t", p->pid, state, p->name, c->name);
     printf("\n");
   }
-  printf("---------------------------\n");
+  printf("-----------------------------------------\n");
+  printf("---------- CONTAINER CPU TIMES ----------\n");
+  for(int i = 0; i < sizeof(containers[0].name) + 2; i++)
+    printf(" ");
+  printf("\tTOKENS\tPROCESSES\n");
+  for(c = containers; c < &containers[NCONT]; c++) {
+    acquire(&c->lock);
+    if(c->state == RUNNABLE || c->state == RUNNING) {
+      printf("'%s'", c->name);
+      for(int i = 0; i < sizeof(c->name) - strlen(c->name) + 2; i++)
+        printf(" ");
+      printf("%d\t%d\n", c->tokens, c->proc_count);
+    }
+    release(&c->lock);
+  }
+  printf("-----------------------------------------\n");
+
 }
 
 int
@@ -759,8 +815,10 @@ psget(struct p_table *pt)
       entry->pid = p->pid;
       // Copy Memory
       entry->sz = p->sz;
-      // Copy Name
-      safestrcpy(entry->name, p->name, sizeof(p->name) + 1);
+      // Copy Process Name
+      safestrcpy(entry->name_ps, p->name, sizeof(p->name) + 1);
+      // Copy Container Name
+      safestrcpy(entry->name_cont, mycont()->name, sizeof(mycont()->name) + 1);
       // Copy State
       safestrcpy(entry->state, states[p->state], sizeof(p->state) + 1);
       // Increment count
@@ -829,9 +887,9 @@ alloc_cont(void)
   int index = 1;
   for(; c <= &containers[NCONT]; c++) {
     acquire(&c->lock);
-    if(c->cont_state == EMPTY || c->cont_state == CREATED) {
+    if(c->state == EMPTY || c->state == CREATED) {
       // Reserve the container.
-      c->cont_state = 1;
+      c->state = RUNNABLE;
       release(&c->lock);
       return index;
     }
@@ -845,6 +903,7 @@ int
 cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxdisk)
 {
   struct container *cont;
+  struct container *p_cont;
   struct proc *p;
   struct inode *ip;
   int cont_index;
@@ -859,11 +918,14 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
 
   // Set the name of the container and set the process counter to 1.
   cont = mycont();
-  strncpy(cont->name, name, 32);
+  acquire(&cont->lock);
+  strncpy(cont->name, name, sizeof(cont->name));
   cont->proc_count = 1;
-  cont->cont_state = USED;
-
-  //procdump();
+  cont->state = RUNNABLE;
+  p_cont = &containers[p->parent->cont_id];
+  acquire(&p_cont->lock);
+  p_cont->proc_count--;
+  release(&p_cont->lock);
 
   cont->proc_limit = maxproc;
   cont->mem_limit = maxmem;
@@ -880,15 +942,14 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
     cont->rootdir_str[len] = '/';
     cont->rootdir_str[len + 1] = '\0';
   }
+  release(&cont->lock);
 
-  //cont->privilege_level = 0;
   ip = namei(root_path);
   if(ip == 0) {
     printf("Invalid root path!\n");
     return -1;
   }
   cont->privilege_level = 1;
-  //cont->privilege_level = 1;
 
   begin_op();
   cont->rootdir = idup(ip);

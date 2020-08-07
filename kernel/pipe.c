@@ -17,6 +17,7 @@ struct pipe {
   uint nwrite;    // number of bytes written
   int readopen;   // read fd is still open
   int writeopen;  // write fd is still open
+  int cont_id;    // keep track of related container
 };
 
 int

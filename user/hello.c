@@ -18,7 +18,7 @@ main(int argc, char *argv[])
   mkdir("../monstermash");
   mkdir("../../funkymash");
 
-  while(1 == 2){
+  while(1){
     if(label)
       printf("[%s] i = %d\n", label, i);
     else

@@ -7,6 +7,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "riscv.h"
+#include "proc.h"
 #include "defs.h"
 
 void freerange(void *pa_start, void *pa_end);
@@ -75,6 +76,9 @@ kalloc(void)
   if(r)
     kmem.freelist = r->next;
   release(&kmem.lock);
+
+  struct container *c = mycont();
+  if(c != 0) c->mem_usage++;
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk

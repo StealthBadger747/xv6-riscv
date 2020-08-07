@@ -112,13 +112,13 @@ struct proc {
   int cont_id;                 // The ID of the corresponding container
 };
 
-enum contstate { EMPTY, CREATED, USED };
+enum contstate { EMPTY, CREATED }; // Also uses procstate for RUNNABLE, RUNNING and SUSPENDED
 
 // Struct for each container
 struct container {
   int privilege_level;        // 0 signifies root privileges
   int cont_id;                // The ID for the container aka the index
-  char name[32];              // The name of container
+  char name[20];              // The name of container
   int proc_limit;             // -1 for uninitialized and 0 for infinite
   int mem_limit;              // -1 for uninitialized and 0 for infinite
   int disk_limit;             // -1 for uninitialized and 0 for infinite
@@ -127,10 +127,10 @@ struct container {
   int disk_usage;             // uninitialized is at 0
   struct inode *rootdir;
   char rootdir_str[MAXPATH];
-  int tokens;
+  uint tokens;
 
   // Specifies whether it is in use or not
-  int cont_state;                 // Value based on enum 'contstate'.
+  int state;                 // Value based on enum 'contstate'.
 
   // Lock for container modifications
   struct spinlock lock;
@@ -140,14 +140,15 @@ struct container {
 struct p_info {
   int pid;
   uint64 sz;
-  char state[16];
-  char name[16];
+  char state[16];                  // The state of the process
+  char name_ps[16];                // The name of process
+  char name_cont[32];              // The name of container
 };
 
 // Add p_table struct for the ps command to use
 struct p_table {
   struct p_info table[NPROC];    // A table of p_info, aka active processes
-  int p_count;                // Keeps track of the number of entries in table
+  int p_count;                   // Keeps track of the number of entries in table
 };
 
 // Header for resuming / suspending processes
