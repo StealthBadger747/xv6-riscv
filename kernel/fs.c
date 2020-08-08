@@ -25,7 +25,7 @@
 static void itrunc(struct inode*);
 // there should be one superblock per disk device, but we run with
 // only one device
-struct superblock sb; 
+struct superblock sb;
 
 // Read the super block.
 static void
@@ -67,6 +67,12 @@ balloc(uint dev)
 {
   int b, bi, m;
   struct buf *bp;
+  struct container *c;
+
+  c = mycont();
+  if(c != 0 && c->mem_limit < c->mem_usage + 1 && c->privilege_level != 0) {
+    panic("balloc: Container memory limit reached!\n");
+  }
 
   bp = 0;
   for(b = 0; b < sb.size; b += BPB){
@@ -78,6 +84,12 @@ balloc(uint dev)
         log_write(bp);
         brelse(bp);
         bzero(dev, b + bi);
+        if(c == 0)
+          c = rootcont();
+        acquire(&c->lock);
+        c->disk_usage++;
+        release(&c->lock);
+
         return b + bi;
       }
     }
@@ -92,6 +104,7 @@ bfree(int dev, uint b)
 {
   struct buf *bp;
   int bi, m;
+  struct container *c;
 
   bp = bread(dev, BBLOCK(b, sb));
   bi = b % BPB;
@@ -101,6 +114,13 @@ bfree(int dev, uint b)
   bp->data[bi/8] &= ~m;
   log_write(bp);
   brelse(bp);
+
+  c = mycont();
+  if(c == 0)
+    c = rootcont();
+  acquire(&c->lock);
+  c->disk_usage--;
+  release(&c->lock);
 }
 
 // Inodes.

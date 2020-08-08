@@ -64,7 +64,11 @@ kfree(void *pa)
   release(&kmem.lock);
 
   c = mycont();
-  if(c != 0) c->mem_usage--;
+  if(c != 0) {
+    acquire(&c->lock);
+    c->mem_usage--;
+    release(&c->lock);
+  }
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -88,7 +92,11 @@ kalloc(void)
     kmem.freelist = r->next;
   release(&kmem.lock);
 
-  if(c != 0) c->mem_usage++;
+  if(c != 0) {
+    acquire(&c->lock);
+    c->mem_usage++;
+    release(&c->lock);
+  }
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk

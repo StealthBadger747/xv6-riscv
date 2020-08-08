@@ -48,13 +48,11 @@ skipelem(char *path, char *name)
 uint64
 df(char *path, int depth)
 {
-  //char dirents[NDIRECT][DIRSIZ]; // to be used with a method not involving recursion with open FDs
   char buf[512], name[DIRSIZ], *p, *buf_offset;
   int fd;
   struct dirent de;
   struct stat st;
   uint64 disk_used = 0;
-  //char **dirents_tracker = dirents;
 
   if((fd = open(path, 0)) < 0){
     fprintf(2, "df: cannot open %s\n", path);

@@ -94,7 +94,7 @@ myproc(void)
 }
 
 // Return the current struct container *, or zero if none.
-struct container *
+struct container*
 mycont(void)
 {
   struct proc *p = myproc();
@@ -102,6 +102,13 @@ mycont(void)
     return 0;
   struct container *c = &containers[p->cont_id];
   return c;
+}
+
+// Return the root container
+struct container*
+rootcont(void)
+{
+  return &containers[0];
 }
 
 int
@@ -791,14 +798,15 @@ procdump(void)
   printf("NAMES");
   for(int i = 0; i < sizeof(containers[0].name) - 3; i++)
     printf(" ");
-  printf("\tMEM(KB)\tPROCS\tTOKENS\n");
+  printf("\tMEM(KB)\tDISK\t\tPROCS\tTOKENS\n");
   for(c = containers; c < &containers[NCONT]; c++) {
     //acquire(&c->lock);
     if(c->state == RUNNABLE || c->state == RUNNING) {
       printf("'%s'", c->name);
       for(int i = 0; i < sizeof(c->name) - strlen(c->name) + 2; i++)
         printf(" ");
-      printf("%d\t%d\t%d\n", (c->mem_usage * PGSIZE) / 1024, c->proc_count, c->tokens);
+      printf("%d\t%d\t\t%d\t%d\n", (c->mem_usage * PGSIZE) / 1024, c->disk_usage * 1024,
+                                    c->proc_count, c->tokens);
     }
     //release(&c->lock);
   }
