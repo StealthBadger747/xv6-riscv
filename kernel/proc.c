@@ -1003,3 +1003,79 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
 
   return 0;
 }
+
+struct container *
+find_container(char *cname)
+{
+  struct container *c;
+  for(c = &containers[0]; c < &containers[NCONT]; c++) {
+    acquire(&c->lock);
+    if(strncmp(c->name, cname, sizeof(c->name)) == 0) {
+      release(&c->lock);
+      return c;
+    }
+    release(&c->lock);
+  }
+
+  return 0;
+}
+
+int
+cpause(char *cname)
+{
+  struct container *c = find_container(cname);
+  if(c == 0)
+    return -1;
+
+  acquire(&c->lock);
+  c->state = SUSPENDED;
+  release(&c->lock);
+
+  return 0;
+}
+
+int
+cresume(char *cname)
+{
+  struct container *c = find_container(cname);
+  if(c == 0 || c->state == RUNNABLE || c->state == RUNNABLE)
+    return -1;
+
+  acquire(&c->lock);
+  c->state = RUNNABLE;
+  release(&c->lock);
+
+  return 0;
+}
+
+int
+cstop(char *cname)
+{
+  struct proc *p = &proc[0];
+  struct container *c = find_container(cname);
+  if(c == 0)
+    return -1;
+
+  for(; p < &proc[NPROC]; p++) {
+    if(p->cont_id == c->cont_id) {
+      kill(p->pid);
+      yield();
+    }
+  }
+
+  acquire(&c->lock);
+
+  *c->name = '\0';
+  c->proc_count = 0;
+  c->state = EMPTY;
+  c->mem_usage = 0;
+  c->proc_limit = 0;
+  c->mem_limit = 0;
+  c->disk_limit = 0;
+  *c->rootdir_str = '\0';
+  c->rootdir = 0;
+  
+  release(&c->lock);
+
+  return 0;
+}

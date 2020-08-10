@@ -140,6 +140,8 @@ UPROGS=\
 	$U/_df\
 	$U/_ctool\
 	$U/_forkbomb\
+        $U/_membomb\
+        $U/_diskbomb\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

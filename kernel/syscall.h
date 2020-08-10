@@ -26,4 +26,7 @@
 #define SYS_suspend 25
 #define SYS_resume  26
 #define SYS_cstart  27
-#define SYS_mypriv  28
+#define SYS_cpause  28
+#define SYS_cresume 29
+#define SYS_cstop   30
+#define SYS_mypriv  31

@@ -42,4 +42,7 @@ entry("psget");
 entry("suspend");
 entry("resume");
 entry("cstart");
+entry("cpause");
+entry("cresume");
+entry("cstop");
 entry("mypriv");

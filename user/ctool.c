@@ -11,6 +11,7 @@ enum ctool_args { CTOOL, SUBCMD };
 enum start_args { BL0, BL1, VC_FILE_NAME, ROOT_DIR, NAME, MAX_PROC, MAX_MEM, 
                   MAX_DISK, CMD, ARG0, ARG1, ARG2, ARG3, ARG4 };
 enum creat_args { BL2, BL3, CONT_DIR, PROG_0, PROG_1, PROG_2, PROG_3, PROG_4 };
+enum puase_args { BL4, BL5, CNAME };
 
 int cp(char* source, char* destination)
 {
@@ -137,11 +138,29 @@ cstart_fail:
 }
 
 int
+pause(int argc, char *argv[])
+{
+  return cpause(argv[CNAME]);
+}
+
+int
+c_resume(int argc, char *argv[])
+{
+  return cresume(argv[CNAME]);
+}
+
+int
+stop(int argc, char *argv[])
+{
+  return cstop(argv[CNAME]);
+}
+
+int
 main(int argc, char *argv[])
 {
   printf("Creating a new container process! :)\n");
 
-  if(argc < 4) {
+  if(argc < 3) {
     printf("usage: ctool <subcommand> <vc> <name> <cmd> [<arg> ...]\n");
     exit(-1);
   }
@@ -152,6 +171,12 @@ main(int argc, char *argv[])
     start(argc, argv);
   else if(strcmp(argv[SUBCMD], "create") == 0)
     create(argc, argv);
+  else if(strcmp(argv[SUBCMD], "pause") == 0)
+    pause(argc, argv);
+  else if(strcmp(argv[SUBCMD], "resume") == 0)
+    c_resume(argc, argv);
+  else if(strcmp(argv[SUBCMD], "stop") == 0)
+    stop(argc, argv);
   else
     printf("Invalid subcommand!\n Exiting...\n");
 

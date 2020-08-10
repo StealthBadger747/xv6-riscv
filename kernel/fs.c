@@ -70,9 +70,10 @@ balloc(uint dev)
   struct container *c;
 
   c = mycont();
-  if(c != 0 && c->mem_limit < c->mem_usage + 1 && c->privilege_level != 0) {
+  if(c != 0 && c->disk_limit < c->disk_usage + 1 && c->privilege_level != 0) {
     panic("balloc: Container memory limit reached!\n");
   }
+  //if(c != 0 ) printf("Disk Used: '%d'\n")
 
   bp = 0;
   for(b = 0; b < sb.size; b += BPB){

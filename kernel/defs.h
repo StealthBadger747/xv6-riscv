@@ -113,6 +113,9 @@ void            traceon(void);
 void            psget(struct p_table *pt);
 int             ksuspend(int, struct file *);
 int				cstart(int vc_fd, char *name, char *root_path, int, int, int);
+int             cpause(char *name);
+int             cresume(char *name);
+int             cstop(char *name);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

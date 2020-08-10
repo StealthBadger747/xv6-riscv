@@ -110,6 +110,9 @@ extern uint64 sys_psget(void);
 extern uint64 sys_suspend(void);
 extern uint64 sys_resume(void);
 extern uint64 sys_cstart(void);
+extern uint64 sys_cpause(void);
+extern uint64 sys_cresume(void);
+extern uint64 sys_cstop(void);
 extern uint64 sys_mypriv(void);
 
 static uint64 (*syscalls[])(void) = {
@@ -140,6 +143,9 @@ static uint64 (*syscalls[])(void) = {
 [SYS_suspend] sys_suspend,
 [SYS_resume]  sys_resume,
 [SYS_cstart]  sys_cstart,
+[SYS_cpause]  sys_cpause,
+[SYS_cresume] sys_cresume,
+[SYS_cstop]   sys_cstop,
 [SYS_mypriv]  sys_mypriv,
 };
 
