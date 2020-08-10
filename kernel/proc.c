@@ -829,7 +829,7 @@ numprocs(void)
 }
 
 void
-psget(struct p_table *pt)
+psget()
 {
   static char *states[] = {
   [UNUSED]    "unused",
@@ -839,26 +839,15 @@ psget(struct p_table *pt)
   [ZOMBIE]    "zombie",
   [SUSPENDED] "suspended"
   };
-
+  
   struct proc *p;
-  pt->p_count = 0;
+  struct container *c = mycont();
 
+  printf("PID\tMEM\tSTATE\tNAME\n");
   for(p = proc; p < &proc[NPROC]; p++){
     acquire(&p->lock);
-    if(p->state != UNUSED){
-      struct p_info *entry = &pt->table[pt->p_count];
-      // Copy PID
-      entry->pid = p->pid;
-      // Copy Memory
-      entry->sz = p->sz;
-      // Copy Process Name
-      safestrcpy(entry->name_ps, p->name, sizeof(p->name) + 1);
-      // Copy Container Name
-      safestrcpy(entry->name_cont, mycont()->name, sizeof(mycont()->name) + 1);
-      // Copy State
-      safestrcpy(entry->state, states[p->state], sizeof(p->state) + 1);
-      // Increment count
-      pt->p_count++;
+    if(p->state != UNUSED && (c->privilege_level == 0 || p->cont_id == c->cont_id)){
+      printf("%d\t%dK\t%s\t%s\n", p->pid, p->sz / 1024, states[p->state], p->name);
 	  }
     release(&p->lock);
   }

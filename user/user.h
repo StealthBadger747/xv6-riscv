@@ -26,7 +26,7 @@ int sleep(int);
 int uptime(void);
 int numprocs(void);
 void traceon(void);
-void psget(struct p_table*);
+void psget(void); //struct p_table*
 int suspend(int, int);
 int resume(char *);
 int cstart(int, char *, char *, int, int, int);

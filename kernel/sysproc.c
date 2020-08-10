@@ -116,18 +116,8 @@ sys_traceon(void)
 uint64
 sys_psget(void)
 {
-  uint64 ps_info_addr;
-  if(argaddr(0, &ps_info_addr) < 0)
-    return -1;
-  
-  struct p_table pt;
-  psget(&pt);
-
-  struct proc *p = myproc();
-  acquire(&p->lock);
-  int status = copyout(p->pagetable, ps_info_addr, (char *) &pt, sizeof(pt) + 1);
-  release(&p->lock);
-  return status;
+  psget();
+  return 0;
 }
 
 // Returns the privlege level based on container

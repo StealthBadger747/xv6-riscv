@@ -155,6 +155,12 @@ stop(int argc, char *argv[])
   return cstop(argv[CNAME]);
 }
 
+void
+info(void)
+{
+
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -165,7 +171,6 @@ main(int argc, char *argv[])
     exit(-1);
   }
   printf("subcommand: '%s'\n", argv[SUBCMD]);
-  //printf("%d\n", strcmp(argv[SUBCMD], "start"));
 
   if(strcmp(argv[SUBCMD], "start") == 0)
     start(argc, argv);
@@ -177,6 +182,8 @@ main(int argc, char *argv[])
     c_resume(argc, argv);
   else if(strcmp(argv[SUBCMD], "stop") == 0)
     stop(argc, argv);
+  else if(strcmp(argv[SUBCMD], "info") == 0)
+    c_resume(argc, argv);
   else
     printf("Invalid subcommand!\n Exiting...\n");
 

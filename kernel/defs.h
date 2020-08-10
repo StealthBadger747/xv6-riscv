@@ -110,7 +110,7 @@ int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             numprocs(void);
 void            traceon(void);
-void            psget(struct p_table *pt);
+void            psget(void);  //struct p_table *pt);
 int             ksuspend(int, struct file *);
 int				cstart(int vc_fd, char *name, char *root_path, int, int, int);
 int             cpause(char *name);
