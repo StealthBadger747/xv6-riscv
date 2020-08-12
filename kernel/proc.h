@@ -137,8 +137,6 @@ struct container {
   char rootdir_str[MAXPATH];
   struct inode *rootdir;
 
-  int last_pid;
-
   // Lock for container modifications
   struct spinlock lock;
 };
