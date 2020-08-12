@@ -591,7 +591,6 @@ scheduler(void)
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
-        cont->last_pid = p->pid;
 
         // Tokens
         cont->schtokens += ticks - start_ticks;
