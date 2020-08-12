@@ -16,7 +16,8 @@ enum start_args { BL0, BL1, VC_FILE_NAME, ROOT_DIR, NAME, MAX_PROC, MAX_MEM,
 enum creat_args { BL2, BL3, CONT_DIR, PROG_0, PROG_1, PROG_2, PROG_3, PROG_4 };
 enum pause_args { BL4, BL5, CNAME };
 
-int cp(char* source, char* destination)
+int
+cp(char* source, char* destination)
 {
   printf("Source: '%s'\n", source);
   printf("Destination: '%s'\n", destination);

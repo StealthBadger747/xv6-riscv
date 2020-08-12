@@ -219,3 +219,13 @@ sys_freemem(void)
   mem = (struct mem_info *) addr;
   return freemem(mem);
 }
+
+uint64
+sys_getticks(void)
+{
+  uint curr_ticks;
+  acquire(&tickslock);
+  curr_ticks = ticks;
+  release(&tickslock);
+  return curr_ticks;
+}

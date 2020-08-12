@@ -38,6 +38,7 @@ int cstop(char *);
 int cinfo(void); // struct c_info *
 int mypriv(void);
 int freemem(struct mem_info *);
+int getticks(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

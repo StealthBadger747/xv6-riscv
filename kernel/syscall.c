@@ -116,6 +116,7 @@ extern uint64 sys_cstop(void);
 extern uint64 sys_cinfo(void);
 extern uint64 sys_mypriv(void);
 extern uint64 sys_freemem(void);
+extern uint64 sys_getticks(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -151,6 +152,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_cinfo]   sys_cinfo,
 [SYS_mypriv]  sys_mypriv,
 [SYS_freemem] sys_freemem,
+[SYS_getticks]sys_getticks,
 };
 
 void

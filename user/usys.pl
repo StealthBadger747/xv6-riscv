@@ -48,3 +48,4 @@ entry("cstop");
 entry("cinfo");
 entry("mypriv");
 entry("freemem");
+entry("getticks");

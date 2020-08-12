@@ -32,3 +32,4 @@
 #define SYS_cinfo   31
 #define SYS_mypriv  32
 #define SYS_freemem 33
+#define SYS_getticks 34
