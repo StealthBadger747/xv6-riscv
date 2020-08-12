@@ -5,6 +5,8 @@
 int
 main(int argc, char *argv[])
 {
-  psget(); 
+  // Had trouble getting the information back to userspace.
+  // It was working before I had containers, Alex and I can't figure out what went wrong.
+  psget();
   exit(0);
 }
