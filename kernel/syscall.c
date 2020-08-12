@@ -113,6 +113,7 @@ extern uint64 sys_cstart(void);
 extern uint64 sys_cpause(void);
 extern uint64 sys_cresume(void);
 extern uint64 sys_cstop(void);
+extern uint64 sys_cinfo(void);
 extern uint64 sys_mypriv(void);
 
 static uint64 (*syscalls[])(void) = {
@@ -146,6 +147,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_cpause]  sys_cpause,
 [SYS_cresume] sys_cresume,
 [SYS_cstop]   sys_cstop,
+[SYS_cinfo]   sys_cinfo,
 [SYS_mypriv]  sys_mypriv,
 };
 

@@ -45,4 +45,5 @@ entry("cstart");
 entry("cpause");
 entry("cresume");
 entry("cstop");
+entry("cinfo");
 entry("mypriv");

@@ -125,12 +125,14 @@ struct container {
   int proc_count;             // uninitialized is at 0
   int mem_usage;              // uninitialized is at 0
   int disk_usage;             // uninitialized is at 0
-  struct inode *rootdir;
-  char rootdir_str[MAXPATH];
   uint tokens;
 
   // Specifies whether it is in use or not
   int state;                 // Value based on enum 'contstate'.
+
+  // Disk isolation information
+  char rootdir_str[MAXPATH];
+  struct inode *rootdir;
 
   // Lock for container modifications
   struct spinlock lock;
@@ -142,7 +144,13 @@ struct p_info {
   uint64 sz;
   char state[16];                  // The state of the process
   char name_ps[16];                // The name of process
-  char name_cont[32];              // The name of container
+  int cont_id;                     // The ID of the parent container
+};
+
+struct c_info {
+  struct container containers[NCONT];   // In practice the rootdir inode pointer 
+                                        // and spinlock don't get copied.
+  struct p_info procs[NPROC];           // Cut-down proc.
 };
 
 // Add p_table struct for the ps command to use

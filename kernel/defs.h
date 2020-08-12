@@ -9,6 +9,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 struct p_table;
+struct c_info;
 
 // bio.c
 void            binit(void);
@@ -116,6 +117,7 @@ int				cstart(int vc_fd, char *name, char *root_path, int, int, int);
 int             cpause(char *name);
 int             cresume(char *name);
 int             cstop(char *name);
+int             cinfo(uint64); // struct c_info *
 
 // swtch.S
 void            swtch(struct context*, struct context*);

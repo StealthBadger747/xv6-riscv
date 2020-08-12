@@ -1,6 +1,7 @@
 struct stat;
 struct rtcdate;
 struct p_table;
+struct c_info;
 
 // system calls
 int fork(void);
@@ -33,6 +34,7 @@ int cstart(int, char *, char *, int, int, int);
 int cpause(char *);
 int cresume(char *);
 int cstop(char *);
+int cinfo(struct c_info *);
 int mypriv(void);
 
 // ulib.c

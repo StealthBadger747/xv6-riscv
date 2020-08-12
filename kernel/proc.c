@@ -6,6 +6,9 @@
 #include "proc.h"
 #include "defs.h"
 
+#define CSIZE sizeof(struct container)
+#define REDACTED_CONT_INFO (sizeof(struct inode*)+sizeof(struct spinlock))
+
 struct cpu cpus[NCPU];
 
 struct container containers[NCONT];
@@ -796,11 +799,11 @@ procdump(void)
   printf("---------------------------------------------------\n");
   printf("---------------- CONTAINER USEAGES ----------------\n");
   printf("NAMES");
-  for(int i = 0; i < sizeof(containers[0].name) - 3; i++)
+  for(int i = 0; i < sizeof(containers[0].name) - 3; i++) {
     printf(" ");
+  }
   printf("\tMEM(KB)\tDISK\t\tPROCS\tTOKENS\n");
   for(c = containers; c < &containers[NCONT]; c++) {
-    //acquire(&c->lock);
     if(c->state == RUNNABLE || c->state == RUNNING) {
       printf("'%s'", c->name);
       for(int i = 0; i < sizeof(c->name) - strlen(c->name) + 2; i++)
@@ -808,7 +811,6 @@ procdump(void)
       printf("%d\t%d\t\t%d\t%d\n", (c->mem_usage * PGSIZE) / 1024, c->disk_usage * 1024,
                                     c->proc_count, c->tokens);
     }
-    //release(&c->lock);
   }
   printf("---------------------------------------------------\n");
 
@@ -1065,6 +1067,57 @@ cstop(char *cname)
   c->rootdir = 0;
   
   release(&c->lock);
+
+  return 0;
+}
+
+// Copies out cut down container and process information to the user.
+int
+cinfo(uint64 c_info_addr)
+{
+  /*static char *states[] = {
+  [UNUSED]    "unused",
+  [SLEEPING]  "sleep ",
+  [RUNNABLE]  "runble",
+  [RUNNING]   "run   ",
+  [ZOMBIE]    "zombie",
+  [SUSPENDED] "suspended"
+  }; */
+
+  struct container conts[NCONT];
+  printf("Total Size: '%x'\n", sizeof(conts[0]) * NCONT);
+  printf("Total Range: '%p' -> '%p'\n", &conts[0], &conts[NCONT]);
+
+  struct container *c;
+  struct proc *my_p, *p;
+  struct c_info *info = (struct c_info *) c_info_addr;
+  int offset;
+
+  offset = 0;
+  c = &containers[0];
+  p = &proc[0];
+  p++; // * REMOVE THIS SOON!
+  my_p = myproc();
+  printf("HI! 0x%x\n", c_info_addr);
+
+  //safestrcpy(info.containers[i], c->name, 20);
+  for(int i = 0; i < NPROC; i++) {
+    acquire(&c->lock);
+    printf("Bytes: '%d'\n", CSIZE);
+    printf("Bytes: '%d'\n", CSIZE - REDACTED_CONT_INFO);
+    int status = copyout(my_p->pagetable, (uint64) info->containers, (char *) c, 
+                CSIZE - REDACTED_CONT_INFO);
+    release(&c->lock);
+    if(status < 0) {
+      printf("Error on copyout!\n");
+      return -1;
+    }
+    printf("status:  '%d'\n", status);
+    printf("HI!11   0x%x\n", c_info_addr + offset);
+    c++;
+    offset += CSIZE;
+  }
+  printf("HI! 0x%x\n", c_info_addr + offset);
 
   return 0;
 }

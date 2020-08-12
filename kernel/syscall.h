@@ -29,4 +29,5 @@
 #define SYS_cpause  28
 #define SYS_cresume 29
 #define SYS_cstop   30
-#define SYS_mypriv  31
+#define SYS_cinfo   31
+#define SYS_mypriv  32

@@ -4,6 +4,9 @@
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
 #include "kernel/param.h"
+#include "kernel/riscv.h"
+#include "kernel/spinlock.h"
+#include "kernel/proc.h"
 #include "kernel/fs.h"
 #include "user/user.h"
 
@@ -11,7 +14,7 @@ enum ctool_args { CTOOL, SUBCMD };
 enum start_args { BL0, BL1, VC_FILE_NAME, ROOT_DIR, NAME, MAX_PROC, MAX_MEM, 
                   MAX_DISK, CMD, ARG0, ARG1, ARG2, ARG3, ARG4 };
 enum creat_args { BL2, BL3, CONT_DIR, PROG_0, PROG_1, PROG_2, PROG_3, PROG_4 };
-enum puase_args { BL4, BL5, CNAME };
+enum pause_args { BL4, BL5, CNAME };
 
 int cp(char* source, char* destination)
 {
@@ -155,18 +158,31 @@ stop(int argc, char *argv[])
   return cstop(argv[CNAME]);
 }
 
-void
+int
 info(void)
 {
+  struct c_info info;
+  int status;
 
+  if(mypriv() != 0) {
+    printf("Need to be in the root container to execute!\n");
+    return -1;
+  }
+
+  //printf("sizeof(info):  '0x%x'\n", sizeof(info.containers));
+  
+  //info.containers[0].name[0] = '\0';
+
+  //printf("CTOOL Total Range: '%p' -> '%p'\n", info.containers[0], info.containers[1]);
+  status = cinfo(&info);
+  //printf("hi!\n");
+  return status;
 }
 
 int
 main(int argc, char *argv[])
 {
-  printf("Creating a new container process! :)\n");
-
-  if(argc < 3) {
+  if(argc < 3 && strcmp(argv[SUBCMD], "info") != 0) {
     printf("usage: ctool <subcommand> <vc> <name> <cmd> [<arg> ...]\n");
     exit(-1);
   }
@@ -183,7 +199,7 @@ main(int argc, char *argv[])
   else if(strcmp(argv[SUBCMD], "stop") == 0)
     stop(argc, argv);
   else if(strcmp(argv[SUBCMD], "info") == 0)
-    c_resume(argc, argv);
+    info();
   else
     printf("Invalid subcommand!\n Exiting...\n");
 

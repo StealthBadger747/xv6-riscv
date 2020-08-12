@@ -192,3 +192,17 @@ sys_cstop(void)
 
   return cstop(name);
 }
+
+uint64
+sys_cinfo(void)
+{
+  uint64 c_info_addr;
+
+  if(sys_mypriv() != 0)
+    return -1;
+
+  if(argaddr(0, &c_info_addr) < 0)
+    return -1;
+
+  return cinfo(c_info_addr);
+}
