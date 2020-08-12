@@ -49,6 +49,9 @@ usertrap(void)
   
   // save user program counter.
   p->tf->epc = r_sepc();
+
+  // Increase ticks ran
+  p->tokens++;
   
   if(r_scause() == 8){
     // system call

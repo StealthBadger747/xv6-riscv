@@ -161,7 +161,6 @@ stop(int argc, char *argv[])
 int
 info(void)
 {
-  struct c_info info;
   int status;
 
   if(mypriv() != 0) {
@@ -169,13 +168,7 @@ info(void)
     return -1;
   }
 
-  //printf("sizeof(info):  '0x%x'\n", sizeof(info.containers));
-  
-  //info.containers[0].name[0] = '\0';
-
-  //printf("CTOOL Total Range: '%p' -> '%p'\n", info.containers[0], info.containers[1]);
-  status = cinfo(&info);
-  //printf("hi!\n");
+  status = cinfo();
   return status;
 }
 

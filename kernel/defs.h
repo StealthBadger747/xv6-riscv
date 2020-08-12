@@ -10,6 +10,7 @@ struct stat;
 struct superblock;
 struct p_table;
 struct c_info;
+struct mem_info;
 
 // bio.c
 void            binit(void);
@@ -118,6 +119,7 @@ int             cpause(char *name);
 int             cresume(char *name);
 int             cstop(char *name);
 int             cinfo(uint64); // struct c_info *
+int				freemem(struct mem_info *mem);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

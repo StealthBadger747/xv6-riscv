@@ -31,3 +31,4 @@
 #define SYS_cstop   30
 #define SYS_cinfo   31
 #define SYS_mypriv  32
+#define SYS_freemem 33

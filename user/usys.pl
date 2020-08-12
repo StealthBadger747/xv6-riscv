@@ -47,3 +47,4 @@ entry("cresume");
 entry("cstop");
 entry("cinfo");
 entry("mypriv");
+entry("freemem");

@@ -4,27 +4,23 @@
 #include "kernel/stat.h"
 #include "user.h"
 
-#define KB 1024
-#define MB (KB * KB)
-#define ALLOCMB 1
-#define ALLOCSIZE (ALLOCMB * MB)
-
 int
 main(int argc, char *argv[])
 {
-  int totalmb = 0;
+  int totalpages = 0;
   char *p;
 
   printf("membomb: started\n");
   while(1) {
-    p = (char *) malloc(ALLOCSIZE);
+    p = (char *) malloc(4096);
     if (p == 0) {
       printf("membomb: malloc() failed, exiting\n");
+      cinfo();
       exit(0);
     }
-    totalmb += ALLOCMB;
+    totalpages++;
 
-    printf("membomb: total memory allocated: %d MB\n", totalmb);
+    printf("membomb: total memory allocated: %d KB\n", totalpages);
   }
 
   exit(0);

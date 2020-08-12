@@ -110,6 +110,7 @@ struct proc {
 
   // Container specific values
   int cont_id;                 // The ID of the corresponding container
+  uint tokens;                 // Is incremented by one every time it is scheduled
 };
 
 enum contstate { EMPTY, CREATED }; // Also uses procstate for RUNNABLE, RUNNING and SUSPENDED
@@ -119,16 +120,16 @@ struct container {
   int privilege_level;        // 0 signifies root privileges
   int cont_id;                // The ID for the container aka the index
   char name[20];              // The name of container
-  int proc_limit;             // -1 for uninitialized and 0 for infinite
-  int mem_limit;              // -1 for uninitialized and 0 for infinite
-  int disk_limit;             // -1 for uninitialized and 0 for infinite
+  int proc_limit;             // -1 for uninitialized
+  int mem_limit;              // -1 for uninitialized
+  int disk_limit;             // -1 for uninitialized
   int proc_count;             // uninitialized is at 0
   int mem_usage;              // uninitialized is at 0
   int disk_usage;             // uninitialized is at 0
-  uint tokens;
+  uint tokens;                // Is incremented by one every time it is scheduled
 
   // Specifies whether it is in use or not
-  int state;                 // Value based on enum 'contstate'.
+  int state;                  // Value based on enum 'contstate'.
 
   // Disk isolation information
   char rootdir_str[MAXPATH];
@@ -147,10 +148,9 @@ struct p_info {
   int cont_id;                     // The ID of the parent container
 };
 
-struct c_info {
-  struct container containers[NCONT];   // In practice the rootdir inode pointer 
-                                        // and spinlock don't get copied.
-  struct p_info procs[NPROC];           // Cut-down proc.
+struct mem_info {
+  uint mem_limit;
+  uint mem_usage;
 };
 
 // Add p_table struct for the ps command to use

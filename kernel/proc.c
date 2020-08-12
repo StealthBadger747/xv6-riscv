@@ -199,6 +199,7 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->state = UNUSED;
   p->cont_id = 0;
+  p->tokens = 0;
 }
 
 // Create a page table for a given process,
@@ -565,7 +566,12 @@ scheduler(void)
         acquire(&p->lock);
         if(p->cont_id == cont->cont_id && p->state == RUNNABLE && cont->state == RUNNABLE) {
           acquire(&cont->lock);
-          cont->tokens++;
+          //if(cont->tokens > 200) {
+          //  printf("RESETTING TOKENS!\n");
+          //  cont->tokens = 0;
+          //}
+          //cont->tokens++;
+          //p->tokens++;
           release(&cont->lock);
           // Switch to chosen process.  It is the process's job
           // to release its lock and then reacquire it
@@ -1075,49 +1081,90 @@ cstop(char *cname)
 int
 cinfo(uint64 c_info_addr)
 {
-  /*static char *states[] = {
+  static char *states[] = {
   [UNUSED]    "unused",
   [SLEEPING]  "sleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
   [ZOMBIE]    "zombie",
   [SUSPENDED] "suspended"
-  }; */
-
-  struct container conts[NCONT];
-  printf("Total Size: '%x'\n", sizeof(conts[0]) * NCONT);
-  printf("Total Range: '%p' -> '%p'\n", &conts[0], &conts[NCONT]);
-
+  };
   struct container *c;
-  struct proc *my_p, *p;
-  struct c_info *info = (struct c_info *) c_info_addr;
-  int offset;
+  struct proc *p;
+  char *state;
+  uint64 total_tokens = 0;
 
-  offset = 0;
-  c = &containers[0];
-  p = &proc[0];
-  p++; // * REMOVE THIS SOON!
-  my_p = myproc();
-  printf("HI! 0x%x\n", c_info_addr);
-
-  //safestrcpy(info.containers[i], c->name, 20);
-  for(int i = 0; i < NPROC; i++) {
-    acquire(&c->lock);
-    printf("Bytes: '%d'\n", CSIZE);
-    printf("Bytes: '%d'\n", CSIZE - REDACTED_CONT_INFO);
-    int status = copyout(my_p->pagetable, (uint64) info->containers, (char *) c, 
-                CSIZE - REDACTED_CONT_INFO);
-    release(&c->lock);
-    if(status < 0) {
-      printf("Error on copyout!\n");
-      return -1;
-    }
-    printf("status:  '%d'\n", status);
-    printf("HI!11   0x%x\n", c_info_addr + offset);
-    c++;
-    offset += CSIZE;
+  // Calculate Process Tokens
+  for(p = proc; p < &proc[NPROC]; p++) {
+    total_tokens += p->tokens;
+    containers[p->cont_id].tokens += p->tokens;
   }
-  printf("HI! 0x%x\n", c_info_addr + offset);
+
+
+  printf("TICKS: %d\n", ticks);
+  printf("\nTOTAL TOKENS: '%d'\n", total_tokens);
+  printf("------------------------------- PROCESSES --------------------------------\n");
+  printf("PID\tCPU %\tTOKENS\tSTATE\tNAMES\tCONTAINER\n");
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state == UNUSED)
+      continue;
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      state = states[p->state];
+    else
+      state = "???";
+    c = &containers[p->cont_id];
+    uint toks = p->tokens;
+    printf("%d\t%d\t%d\t%s\t%s\t'%s'\t", p->pid, (toks*100)/total_tokens, toks, state, p->name, c->name);
+    printf("\n");
+  }
+
+  printf("----------------------------- CONTAINER INFO -----------------------------\n");
+  printf("NAME");
+  for(int i = 0; i < sizeof(containers[0].name) - 3; i++) {
+    printf(" ");
+  }
+  printf("\tMEM(KB)\tDISK\t\tPROCS\tCPU %\tTOKENS\n");
+  for(c = containers; c < &containers[NCONT]; c++) {
+    acquire(&c->lock);
+    if(c->state == RUNNABLE || c->state == RUNNING) {
+      printf("'%s'", c->name);
+      for(int i = 0; i < sizeof(c->name) - strlen(c->name) + 2; i++)
+        printf(" ");
+      printf("%d\t%d\t\t%d\t%d%\t%d\n", (c->mem_usage * PGSIZE) / 1024, c->disk_usage * 1024,
+                                    c->proc_count, (c->tokens * 100) / total_tokens, c->tokens);
+      c->tokens = 0;
+    }
+    release(&c->lock);
+  }
+  printf("--------------------------------------------------------------------------\n");
 
   return 0;
+}
+
+int
+freemem(struct mem_info *mem)
+{
+  struct container *c;
+  struct proc *p;
+  struct mem_info kmem;
+  uint mem_usage = 0;
+
+  p = myproc();
+  c = mycont();
+
+  if(c->privilege_level != 0) {
+    kmem.mem_limit = c->mem_limit;
+    kmem.mem_usage = c->mem_usage;
+    return copyout(p->pagetable, (uint64) mem, (char *) &kmem, sizeof(uint) * 2);
+  }
+
+  for(c = containers; c < &containers[NCONT]; c++) {
+    acquire(&c->lock);
+    mem_usage += c->mem_usage;
+    release(&c->lock);
+  }
+
+  kmem.mem_limit = PHYSTOP / PGSIZE;
+  kmem.mem_usage = mem_usage;
+  return copyout(p->pagetable, (uint64) mem, (char *) &kmem, sizeof(uint) * 2);
 }

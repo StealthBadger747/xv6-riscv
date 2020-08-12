@@ -206,3 +206,16 @@ sys_cinfo(void)
 
   return cinfo(c_info_addr);
 }
+
+uint64
+sys_freemem(void)
+{
+  uint64 addr;
+  struct mem_info *mem;
+
+  if(argaddr(0, &addr) < 0)
+    return -1;
+
+  mem = (struct mem_info *) addr;
+  return freemem(mem);
+}
