@@ -111,6 +111,7 @@ struct proc {
   // Container specific values
   int cont_id;                 // The ID of the corresponding container
   uint tokens;                 // Is incremented by one every time it is scheduled
+  int hasrun;
 };
 
 enum contstate { EMPTY, CREATED }; // Also uses procstate for RUNNABLE, RUNNING and SUSPENDED
@@ -126,7 +127,8 @@ struct container {
   int proc_count;             // uninitialized is at 0
   int mem_usage;              // uninitialized is at 0
   int disk_usage;             // uninitialized is at 0
-  uint tokens;                // Is incremented by one every time it is scheduled
+  uint schtokens;             // Is incremented by one every time it is scheduled
+  uint tokens;                // Used for calculating CPU time
 
   // Specifies whether it is in use or not
   int state;                  // Value based on enum 'contstate'.
@@ -134,6 +136,8 @@ struct container {
   // Disk isolation information
   char rootdir_str[MAXPATH];
   struct inode *rootdir;
+
+  int last_pid;
 
   // Lock for container modifications
   struct spinlock lock;

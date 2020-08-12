@@ -61,6 +61,7 @@ procinit(void)
   containers[0].rootdir = namei("/");
   containers[0].proc_limit = NPROC;
   containers[0].proc_count = 1;
+  containers[0].schtokens = 1;
 
   kvminithart();
 }
@@ -555,41 +556,47 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-    for(cont = containers; cont < &containers[NCONT]; cont++) {
-      acquire(&cont->lock);
-      if(cont->state != RUNNABLE) {
-        release(&cont->lock);
-        continue;
-      }
-      release(&cont->lock);
-      for(p = proc; p < &proc[NPROC]; p++) {
-        acquire(&p->lock);
-        if(p->cont_id == cont->cont_id && p->state == RUNNABLE && cont->state == RUNNABLE) {
-          acquire(&cont->lock);
-          //if(cont->tokens > 200) {
-          //  printf("RESETTING TOKENS!\n");
-          //  cont->tokens = 0;
-          //}
-          //cont->tokens++;
-          //p->tokens++;
-          release(&cont->lock);
-          // Switch to chosen process.  It is the process's job
-          // to release its lock and then reacquire it
-          // before jumping back to us.
-          p->state = RUNNING;
-          c->proc = p;
-          swtch(&c->scheduler, &p->context);
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
 
-          // Check for suspended process
-          if(p->suspended)
-            exit(-1);
-
-          // Process is done running for now.
-          // It should have changed its p->state before coming back.
-          c->proc = 0;
+      struct container *smallest_cont = containers;
+      struct container *temp_cont;
+      for(temp_cont = containers; temp_cont < &containers[NCONT]; temp_cont++) {
+        acquire(&temp_cont->lock);
+        if(temp_cont->state != RUNNABLE) {
+          release(&temp_cont->lock);
+          continue;
         }
-        release(&p->lock);
+        uint tokens = temp_cont->schtokens;
+        release(&temp_cont->lock);
+        if(smallest_cont->schtokens > tokens && tokens != 0)
+          smallest_cont = temp_cont;
       }
+      cont = smallest_cont;
+
+      if(p->cont_id == cont->cont_id && p->state == RUNNABLE && cont->state == RUNNABLE) {
+        cont->schtokens++;
+        // Switch to chosen process.  It is the process's job
+        // to release its lock and then reacquire it
+        // before jumping back to us.
+        p->state = RUNNING;
+        c->proc = p;
+        int start_ticks = ticks;
+        swtch(&c->scheduler, &p->context);
+
+        // Check for suspended process
+        if(p->suspended)
+          exit(-1);
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        cont->last_pid = p->pid;
+
+        // Tokens
+        cont->schtokens += ticks - start_ticks;
+      }
+      release(&p->lock);
     }
   }
 }
@@ -815,7 +822,7 @@ procdump(void)
       for(int i = 0; i < sizeof(c->name) - strlen(c->name) + 2; i++)
         printf(" ");
       printf("%d\t%d\t\t%d\t%d\n", (c->mem_usage * PGSIZE) / 1024, c->disk_usage * 1024,
-                                    c->proc_count, c->tokens);
+                                    c->proc_count, c->schtokens);
     }
   }
   printf("---------------------------------------------------\n");
@@ -974,6 +981,7 @@ cstart(int vc_fd, char *name, char *root_path, int maxproc, int maxmem, int maxd
   strncpy(cont->name, name, sizeof(cont->name));
   cont->proc_count = 1;
   cont->state = RUNNABLE;
+  cont->schtokens = 1;
 
   // Cleanup process counter from parent as well as subracting 1 page of memory
   // and adding that memory usage to here.
