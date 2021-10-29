@@ -1,13 +1,15 @@
 * This is a project that implements many things into the xv6 learning operating system.
-This is a hobby toy and learning tool for myself and code quality and completeness can be lacking at times.
+This is a hobby toy and learning tool for myself.
 
 
 * Changes
 - Partial implementation of strace (needs work)
 - Suspending and resuming processes (Is now broken since containers were added)
-- Containerization of processes (Works mostly, but needs a major overhaul. Core concpets were implemented though)
+- Containerization of processes (Core concpets were implemented, although I have since thought of a cleaner way to implement it)
 
 * Current goals:
+- Fix broken features
+- Complete strace implementation
 - Add networking stack/support
 
 
