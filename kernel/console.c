@@ -174,25 +174,25 @@ consoleintr(int c)
   case 200: // F1
     doconsoleswitch = 0;
     break;
-  case 201:
+  case 201: // F2
     doconsoleswitch = 1;
     break;
-  case 202:
+  case 202: // F3
     doconsoleswitch = 2;
     break;
-  case 203:
+  case 203: // F4
     doconsoleswitch = 3;
     break;
-  case 204:
+  case 204: // F5
     doconsoleswitch = 4;
     break;
-  case 205:
+  case 205: // F6
     doconsoleswitch = 5;
     break;
-  case 206:
+  case 206: // F7
     doconsoleswitch = 6;
     break;
-  case 207:
+  case 207: // F8
     doconsoleswitch = 7;
     break;
   default:

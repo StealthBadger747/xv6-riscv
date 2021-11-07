@@ -29,6 +29,7 @@ main(int argc, char *argv[])
     dup(fd);
     dup(fd);
     exec(argv[2], &argv[2]);
+    printf("COMMAND FAILED?: %s\n", argv[2]);
     exit(0);
   }
 

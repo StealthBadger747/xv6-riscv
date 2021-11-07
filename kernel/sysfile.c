@@ -98,9 +98,9 @@ sys_write(void)
   if(argfd_status < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
     return -1;
   
-  struct proc *curr_p = myproc();
-  if(curr_p->traceon == 1)
-    printf("[%d] sys_write(%d, %p, %d)\n", curr_p->pid, argfd_status, p, n);
+  // struct proc *curr_p = myproc();
+  // if(curr_p->traceon == 1)
+  //   printf("[%d] sys_write(%d, %p, %d)\n", curr_p->pid, argfd_status, p, n);
 
   return filewrite(f, p, n);
 }
