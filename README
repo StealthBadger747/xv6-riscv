@@ -3,12 +3,12 @@ This is a hobby toy and learning tool for myself.
 
 
 * Changes
-- Partial implementation of strace (needs work)
-- Suspending and resuming processes (Is now broken since containers were added)
-- Containerization of processes (Core concpets were implemented, although I have since thought of a cleaner way to implement it)
+- Partial implementation of strace
+- Suspending and resuming processes
+- Containerization of processes
 
 * Current goals:
-- Fix broken features
+- Build automated tests
 - Complete strace implementation
 - Add networking stack/support
 
