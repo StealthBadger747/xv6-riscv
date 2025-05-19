@@ -1,7 +1,11 @@
-#include "types.h"
-#include "param.h"
-#include "defs.h"
-#include "board/milkv-duo/config.h"
+#include "../../types.h"
+#include "../../param.h"
+#include "../../memlayout.h"
+#include "../../riscv.h"
+#include "../../spinlock.h"
+#include "../../proc.h"
+#include "../../defs.h"
+#include "config.h"
 
 // Enable I-cache
 void
@@ -57,7 +61,8 @@ invalidate_dcache_range(uint64 start, uint64 size)
   start = start & ~(64-1);  // Align to cache line size
   
   for(uint64 addr = start; addr < end; addr += 64) {
-    asm volatile("dcache.cva %0" : : "r"(addr));
+    // dcache.cva rd - T-Head custom instruction
+    asm volatile(".word 0x0c000073" : : "r"(addr));
   }
   asm volatile("th.sync.i");
 }
@@ -70,7 +75,8 @@ flush_dcache_range(uint64 start, uint64 size)
   start = start & ~(64-1);  // Align to cache line size
   
   for(uint64 addr = start; addr < end; addr += 64) {
-    asm volatile("dcache.cva %0" : : "r"(addr));
+    // dcache.cva rd - T-Head custom instruction
+    asm volatile(".word 0x0c000073" : : "r"(addr));
   }
   asm volatile("th.sync.i");
 } 

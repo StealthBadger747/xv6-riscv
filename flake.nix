@@ -3,13 +3,11 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    duo-nix = {
-      url = "path:/home/erikp/Documents/fun-coding-projects/duo-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    duo-buildroot-sdk.url = "github:milkv-duo/duo-buildroot-sdk";
+    duo-buildroot-sdk.flake = false;
   };
 
-  outputs = { self, nixpkgs, duo-nix }:
+  outputs = { self, nixpkgs, duo-buildroot-sdk }:
     let
       supportedSystems = [ "x86_64-linux" "aarch64-darwin" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -18,15 +16,30 @@
       packages = forAllSystems (system:
         let
           pkgs = nixpkgsFor.${system};
-          duoPkgs = duo-nix.packages.${system};
-          pkgsCross = pkgs.pkgsCross.riscv64;
+          # Define a local overlay for duo-nix packages
+          duoOverlay = self: super: {
+            chip = "cv1800b";
+            board = "milkv_duo_sd";
+            tools = self.callPackage ./duo-nix/tools.nix {};
+            chip_conf = self.callPackage ./duo-nix/chipconf.nix {};
+            fip-simple = self.callPackage ./duo-nix/fip-simple.nix {};
+            memmap = self.callPackage ./duo-nix/memmap.nix {};
+            fsbl = self.callPackage ./duo-nix/fsbl.nix {};
+            opensbi = self.callPackage ./duo-nix/opensbi.nix {};
+            uboot = self.callPackage ./duo-nix/uboot.nix {};
+            fipinfo = self.callPackage ./duo-nix/fipinfo.nix {};
+            freertos = self.callPackage ./duo-nix/freertos.nix {};
+            fip = self.callPackage ./duo-nix/fip.nix {};
+            duo-buildroot-sdk = duo-buildroot-sdk;
+          };
+          duoPkgs = (pkgs.extend duoOverlay);
 
           # xv6 build
-          xv6 = pkgsCross.stdenv.mkDerivation {
+          xv6 = pkgs.pkgsCross.riscv64-embedded.stdenv.mkDerivation {
             name = "xv6-milkv-duo";
             src = ./.;
             nativeBuildInputs = [
-              pkgsCross.stdenv.cc
+              pkgs.pkgsCross.riscv64-embedded.stdenv.cc
               pkgs.python3
             ];
             buildInputs = [
@@ -35,7 +48,7 @@
             CFLAGS = "-march=rv64imafdcv_xtheadsync_xtheadcmo_zicsr_zifencei";
             ASFLAGS = "-march=rv64imafdcv_xtheadsync_xtheadcmo_zicsr_zifencei";
             makeFlags = [
-              "TOOLPREFIX=riscv64-unknown-linux-gnu-"
+              "TOOLPREFIX=riscv64-none-elf-"
             ];
             installPhase = ''
               mkdir -p $out
@@ -47,37 +60,20 @@
           image = pkgs.runCommand "xv6-milkv-duo-image" {
             nativeBuildInputs = [ duoPkgs.tools ];
           } ''
-            # Create a temporary directory for building the image
-            mkdir -p $out
-            cd $out
+            mkdir $out
+            NOR_INFO=$(printf '%72s' | tr ' ' 'FF')
+            NAND_INFO=00000000
 
-            # Copy the xv6 kernel
-            cp ${xv6}/kernel kernel.img
+            touch empty.bin
 
-            # Create the FIP (Firmware Image Package)
-            mkdir -p fip
-            cp ${duoPkgs.opensbi}/fw_dynamic.bin fip/
-            cp ${duoPkgs.uboot}/u-boot.bin fip/
-            cp kernel.img fip/
-
-            # Generate the FIP image
-            fiptool.py create --align 4096 \
-              --opensbi fip/fw_dynamic.bin \
-              --uboot fip/u-boot.bin \
-              --kernel fip/kernel.img \
-              fip.bin
-
-            # Create the final boot image
-            mkdir -p boot
-            cp ${duoPkgs.fsbl}/bl2.bin boot/
-            cp fip.bin boot/
-            
-            # Create the final image
-            mkcvipart.py ${duoPkgs.memmap}/include/partition.xml boot/
-            mk_imgHeader.py ${duoPkgs.memmap}/include/partition.xml boot/
-
-            # Create the final bootable image
-            cat boot/bl2.bin boot/fip.bin > $out/xv6-milkv-duo.img
+            fiptool.py -v genfip $out/fip.bin \
+              --DDR_PARAM=${duoPkgs.duo-buildroot-sdk}/fsbl/test/cv181x/ddr_param.bin \
+              --MONITOR_RUNADDR=0x80000000 --MONITOR=${duoPkgs.opensbi}/fw_dynamic.bin \
+              --BLCP_2ND_RUNADDR=0x83f40000 --BLCP_2ND=${./duo-nix/buildroot-unpacked/blcp_2nd.bin} \
+              --CHIP_CONF=${duoPkgs.chip_conf} --NOR_INFO=$NOR_INFO --NAND_INFO=$NAND_INFO \
+              --LOADER_2ND=${duoPkgs.uboot}/u-boot.bin --compress=lzma \
+              --BLCP=empty.bin --BLCP_IMG_RUNADDR=0x05200200 \
+              --BL2=${duoPkgs.fsbl}/bl2.bin
           '';
         in {
           inherit xv6 image;

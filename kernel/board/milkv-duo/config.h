@@ -4,8 +4,8 @@
 // Memory map
 #define KERNBASE 0x80000000L
 #define PHYSTOP  (KERNBASE + 64*1024*1024)  // 64MB RAM
-#define TRAMPOLINE (MAXVA - PGSIZE)
-#define TRAPFRAME (TRAMPOLINE - PGSIZE)
+// #define TRAMPOLINE (MAXVA - PGSIZE)
+// #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 
 // UART
 #define UART0 0x04140000L
@@ -19,6 +19,9 @@
 #define PLIC_MTHRESHOLD(hart) (PLIC_BASE + 0x200000 + (hart)*0x1000)
 #define PLIC_MCLAIM(hart) (PLIC_BASE + 0x200004 + (hart)*0x1000)
 #define PLIC_MCOMPLETE(hart) (PLIC_BASE + 0x200004 + (hart)*0x1000)
+#define PLIC_SENABLE(hart)    (PLIC_BASE + 0x2080 + (hart)*0x100)
+#define PLIC_SPRIORITY(hart) (PLIC_BASE + 0x201000 + (hart)*0x2000)
+#define PLIC_SCLAIM(hart)    (PLIC_BASE + 0x201004 + (hart)*0x2000)
 
 // T-Head specific CSRs
 #define CSR_MHCR 0x7c1
@@ -33,5 +36,17 @@
 
 // Number of CPUs
 #define NCPU 2
+
+// CLINT (Core Local Interruptor)
+#define CLINT 0x2000000L
+#define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))
+#define CLINT_MTIME (CLINT + 0xBFF8) // cycles since boot.
+
+// VirtIO (for compatibility; not present on all boards)
+#define VIRTIO0 0x10001000L
+#define VIRTIO0_IRQ 1
+
+// PLIC base for compatibility
+#define PLIC 0x70000000L
 
 #endif // _BOARD_MILKV_DUO_CONFIG_H 

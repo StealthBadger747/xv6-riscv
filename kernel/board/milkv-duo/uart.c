@@ -1,9 +1,11 @@
-#include "types.h"
-#include "param.h"
-#include "spinlock.h"
-#include "proc.h"
-#include "defs.h"
-#include "board/milkv-duo/config.h"
+#include "../../types.h"
+#include "../../param.h"
+#include "../../memlayout.h"
+#include "../../riscv.h"
+#include "../../spinlock.h"
+#include "../../proc.h"
+#include "../../defs.h"
+#include "config.h"
 
 // UART registers
 #define UART_RBR 0x00  // Receive Buffer Register

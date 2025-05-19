@@ -1,5 +1,11 @@
 #define NPROC        64  // maximum number of processes
+
+#ifdef BOARD_MILKV_DUO
+#include "board/milkv-duo/config.h"
+#else
 #define NCPU          8  // maximum number of CPUs
+#endif
+
 #define NCONT         4  // maximum number of Containers
 #define MAXCONS		  8  // maximum number of Virtual Consoles
 #define NOFILE       16  // open files per process

@@ -1,3 +1,20 @@
+CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
+CFLAGS += -MD
+CFLAGS += -mcmodel=medany
+CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
+CFLAGS += -I.
+CFLAGS += -DBOARD_MILKV_DUO
+CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+CFLAGS += -march=rv64imafdcv_xtheadsync_xtheadcmo_zicsr_zifencei
+
+# Disable PIE when possible (for Ubuntu 16.10 toolchain)
+ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
+CFLAGS += -fno-pie -no-pie
+endif
+ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
+CFLAGS += -fno-pie -nopie
+endif
+
 K=kernel
 U=user
 
@@ -6,7 +23,6 @@ OBJS = \
   $K/start.o \
   $K/console.o \
   $K/printf.o \
-  $K/uart.o \
   $K/kalloc.o \
   $K/spinlock.o \
   $K/string.o \
@@ -32,6 +48,10 @@ OBJS = \
   $K/board/milkv-duo/uart.o \
   $K/board/milkv-duo/cache.o
 
+ifeq ($(findstring BOARD_MILKV_DUO,$(CFLAGS)),)
+OBJS += $K/uart.o
+endif
+
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
 #TOOLPREFIX = 
@@ -55,22 +75,6 @@ AS = $(TOOLPREFIX)gas
 LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
-
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
-CFLAGS += -MD
-CFLAGS += -mcmodel=medany
-CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -I.
-CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
-CFLAGS += -march=rv64imafdcv_xtheadsync_xtheadcmo_zicsr_zifencei
-
-# Disable PIE when possible (for Ubuntu 16.10 toolchain)
-ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
-CFLAGS += -fno-pie -no-pie
-endif
-ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
-CFLAGS += -fno-pie -nopie
-endif
 
 LDFLAGS = -z max-page-size=4096
 
@@ -110,7 +114,7 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h
-	gcc -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
+	$(CC) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
