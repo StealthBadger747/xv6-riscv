@@ -3,7 +3,11 @@
 
 // Memory map
 #define KERNBASE 0x80000000L
-#define PHYSTOP  (KERNBASE + 64*1024*1024)  // 64MB RAM
+#ifdef CHIP_SG2002
+#define PHYSTOP  (KERNBASE + 256*1024*1024)  // 256MB RAM for SG2002
+#else
+#define PHYSTOP  (KERNBASE + 64*1024*1024)   // 64MB RAM for CV1800B
+#endif
 // #define TRAMPOLINE (MAXVA - PGSIZE)
 // #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 
@@ -11,7 +15,7 @@
 #define UART0 0x04140000L
 #define UART0_IRQ 3
 
-// PLIC
+// PLIC (Platform Level Interrupt Controller)
 #define PLIC_BASE 0x70000000L
 #define PLIC_PRIORITY (PLIC_BASE + 0x0)
 #define PLIC_PENDING (PLIC_BASE + 0x1000)
@@ -38,7 +42,7 @@
 #define NCPU 2
 
 // CLINT (Core Local Interruptor)
-#define CLINT 0x2000000L
+#define CLINT 0x74000000L
 #define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))
 #define CLINT_MTIME (CLINT + 0xBFF8) // cycles since boot.
 

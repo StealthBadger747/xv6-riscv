@@ -4,10 +4,10 @@ ENTRY( _entry )
 SECTIONS
 {
   /*
-   * ensure that entry.S / _entry is at 0x80000000,
-   * where qemu's -kernel jumps.
+   * ensure that entry.S / _entry is at 0x80200000,
+   * where the BL33 header expects it to be.
    */
-  . = 0x80000000;
+  . = 0x80200000;
   .text :
   {
     *(.text)
