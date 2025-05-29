@@ -17,4 +17,8 @@ user/usys.S
 .gdbinit
 Testing_Script.ahk
 
+result
+
 .direnv
+
+yoctools*

@@ -101,8 +101,7 @@
           {
             cv1800b = mkChipPackages "cv1800b";
             sg2002 = mkChipPackages "sg2002";
-            sg_boot = duoPkgs.sg_boot;
-            default = mkChipPackages "cv1800b";  # Default to CV1800B for backward compatibility
+            default = mkChipPackages "cv1800b";  # Default to CV1800B
           }
       );
 
@@ -132,6 +131,37 @@
                 buildInputs = [
                   libudev-zero
                 ];
+              })
+              # Python package
+              (python3Packages.buildPythonPackage rec {
+                pname = "yoctools";
+                version = "2.1.11";
+                src = python3Packages.fetchPypi {
+                  pname = pname;
+                  version = version;
+                  sha256 = "sha256-2VtdH4WxObqsc3Vbu/NmtxDie6AO15fwDuic4gw8WHg=";
+                };
+                propagatedBuildInputs = with python3Packages; [ 
+                  pyserial 
+                  click 
+                  scons
+                  ruamel-yaml
+                  threadpool
+                  setuptools
+                  wheel
+                  pip
+                  GitPython
+                  gitdb
+                  smmap
+                  xlsxwriter
+                  requests-toolbelt
+                  configparser
+                ];
+                meta = with lib; {
+                  description = "YoC tools";
+                  homepage = "https://pypi.org/project/yoctools/";
+                  license = licenses.bsd3;
+                };
               })
             ];
           };
