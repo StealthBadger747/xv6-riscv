@@ -4,10 +4,11 @@ ENTRY( _entry )
 SECTIONS
 {
   /*
-   * ensure that entry.S / _entry is at 0x80000000,
-   * where qemu's -kernel jumps.
+   * the link base is supplied by the Makefile:
+   *   --defsym=_kbase=0x80000000  (QEMU)
+   *   --defsym=_kbase=0x80200000  (Duo, loaded via U-Boot `go`)
    */
-  . = 0x80000000;
+  . = _kbase;
   .text :
   {
     *(.text)
@@ -25,8 +26,14 @@ SECTIONS
     *(.data)
   }
   .bss : {
+    PROVIDE(_bss_start = .);
     *(.bss)
     *(.sbss*)
-     PROVIDE(end = .);
+    PROVIDE(_bss_end = .);
+  }
+
+  .stack (NOLOAD) : {
+    *(.stack)
+    PROVIDE(end = .);
   }
 }

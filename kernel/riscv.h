@@ -261,7 +261,6 @@ r_time()
 static inline void
 intr_on()
 {
-  w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
   w_sstatus(r_sstatus() | SSTATUS_SIE);
 }
 
@@ -332,13 +331,34 @@ sfence_vma()
 #define PTE_W (1L << 2)
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4) // 1 -> user can access
+#define PTE_A (1L << 6)
+#define PTE_D (1L << 7)
+
+#ifndef QEMU
+// XuanTie OpenC906 User Manual, sections 3.8 and 5.2.2.1.
+// These pre-Svpbmt attributes are active when MXSTATUS.MAEE is set by
+// M-mode firmware. Bit 60 is reserved. Bit 59 is Sec, which the manual
+// says is not defined in C906, so xv6 preserves/masks it but never sets it.
+#define PTE_THEAD_SEC (1UL << 59)
+#define PTE_THEAD_B   (1UL << 61)
+#define PTE_THEAD_C   (1UL << 62)
+#define PTE_THEAD_SO  (1UL << 63)
+#define PTE_THEAD_ATTR_MASK \
+  (PTE_THEAD_SEC | PTE_THEAD_B | PTE_THEAD_C | PTE_THEAD_SO)
+#define PTE_THEAD_DEVICE PTE_THEAD_SO
+#define PTE_THEAD_NORMAL (PTE_THEAD_C | PTE_THEAD_B)
+#endif
 
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
 
+#ifdef QEMU
 #define PTE2PA(pte) (((pte) >> 10) << 12)
-
 #define PTE_FLAGS(pte) ((pte) & 0x3FF)
+#else
+#define PTE2PA(pte) ((((pte) & ~PTE_THEAD_ATTR_MASK) >> 10) << 12)
+#define PTE_FLAGS(pte) ((pte) & (0x3FF | PTE_THEAD_ATTR_MASK))
+#endif
 
 // extract the three 9-bit page table indices from a virtual address.
 #define PXMASK          0x1FF // 9 bits

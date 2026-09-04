@@ -135,7 +135,12 @@ userret:
 
 	# restore user a0, and save TRAPFRAME in sscratch
         csrrw a0, sscratch, a0
-        
+
+        # OpenC906 has separate data and instruction caches. User code was
+        # written through the data side, so synchronize it before fetching
+        # from the newly installed user page table.
+        fence.i
+
         # return to user mode and user pc.
         # usertrapret() set up sstatus and sepc.
         sret

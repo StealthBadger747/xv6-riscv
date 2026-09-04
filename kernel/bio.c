@@ -13,7 +13,6 @@
 // * Only one process at a time can use a buffer,
 //     so do not keep them longer than necessary.
 
-
 #include "types.h"
 #include "param.h"
 #include "spinlock.h"
@@ -22,6 +21,17 @@
 #include "defs.h"
 #include "fs.h"
 #include "buf.h"
+
+// The block device: virtio disk on QEMU, RAM disk on the Duo.
+static void
+disk_rw(struct buf *b, int write)
+{
+#ifdef QEMU
+  virtio_disk_rw(b, write);
+#else
+  ramdiskrw(b, write);
+#endif
+}
 
 struct {
   struct spinlock lock;
@@ -94,7 +104,7 @@ bread(uint dev, uint blockno)
 
   b = bget(dev, blockno);
   if(!b->valid) {
-    virtio_disk_rw(b, 0);
+    disk_rw(b, 0);
     b->valid = 1;
   }
   return b;
@@ -106,7 +116,7 @@ bwrite(struct buf *b)
 {
   if(!holdingsleep(&b->lock))
     panic("bwrite");
-  virtio_disk_rw(b, 1);
+  disk_rw(b, 1);
 }
 
 // Release a locked buffer.

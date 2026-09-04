@@ -27,16 +27,35 @@ kvminit()
   memset(kernel_pagetable, 0, PGSIZE);
 
   // uart registers
-  kvmmap(UART0, UART0, PGSIZE, PTE_R | PTE_W);
+  kvmmap(UART0, UART0, PGSIZE, PTE_R | PTE_W
+#ifndef QEMU
+      | PTE_THEAD_DEVICE
+#endif
+  );
 
+#ifdef QEMU
   // virtio mmio disk interface
   kvmmap(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+#endif
 
   // CLINT
-  kvmmap(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+  kvmmap(CLINT, CLINT, 0x10000, PTE_R | PTE_W
+#ifndef QEMU
+      | PTE_THEAD_DEVICE
+#endif
+  );
 
   // PLIC
-  kvmmap(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+  kvmmap(PLIC, PLIC, 0x400000, PTE_R | PTE_W
+#ifndef QEMU
+      | PTE_THEAD_DEVICE
+#endif
+  );
+
+#ifndef QEMU
+  // RAM disk, formatted by ramdiskinit()
+  kvmmap(RAMDISK, RAMDISK, RAMDISK_MAX, PTE_R | PTE_W);
+#endif
 
   // map kernel text executable and read-only.
   kvmmap(KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
@@ -54,6 +73,8 @@ kvminit()
 void
 kvminithart()
 {
+  asm volatile("fence rw, rw");
+  sfence_vma();
   w_satp(MAKE_SATP(kernel_pagetable));
   sfence_vma();
 }
@@ -117,7 +138,7 @@ walkaddr(pagetable_t pagetable, uint64 va)
 // only used when booting.
 // does not flush TLB or enable paging.
 void
-kvmmap(uint64 va, uint64 pa, uint64 sz, int perm)
+kvmmap(uint64 va, uint64 pa, uint64 sz, uint64 perm)
 {
   if(mappages(kernel_pagetable, va, sz, pa, perm) != 0)
     panic("kvmmap");
@@ -148,7 +169,7 @@ kvmpa(uint64 va)
 // be page-aligned. Returns 0 on success, -1 if walk() couldn't
 // allocate a needed page-table page.
 int
-mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
+mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, uint64 perm)
 {
   uint64 a, last;
   pte_t *pte;
@@ -160,6 +181,15 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       return -1;
     if(*pte & PTE_V)
       panic("remap");
+#ifndef QEMU
+    if((perm & PTE_THEAD_ATTR_MASK) == 0)
+      perm |= PTE_THEAD_NORMAL;
+    // C906 faults on an unaccessed leaf and on a write with D clear.
+    // Pre-mark mappings because xv6 does not service A/D page faults.
+    perm |= PTE_A;
+    if(perm & PTE_W)
+      perm |= PTE_D;
+#endif
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(a == last)
       break;
@@ -316,7 +346,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
-  uint flags;
+  uint64 flags;
   char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){

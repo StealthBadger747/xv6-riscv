@@ -190,25 +190,45 @@ devintr()
 
     if(irq == UART0_IRQ){
       uartintr();
+#ifdef QEMU
     } else if(irq == VIRTIO0_IRQ){
       virtio_disk_intr();
+#endif
     }
 
     plic_complete(irq);
     return 1;
-  } else if(scause == 0x8000000000000001L){
+  } else if(
+#ifdef QEMU
+      scause == 0x8000000000000001L){
     // software interrupt from a machine-mode timer interrupt,
     // forwarded by timervec in kernelvec.S.
 
     if(cpuid() == 0){
       clockintr();
     }
-    
+
     // acknowledge the software interrupt by clearing
     // the SSIP bit in sip.
     w_sip(r_sip() & ~2);
 
     return 2;
+#else
+      scause == 0x8000000000000005L){
+    // supervisor timer interrupt, delivered directly by OpenSBI
+    // (the CLINT timer stays in M-mode; SBI_TIME_SET_TIMER arms it).
+
+    if(cpuid() == 0){
+      clockintr();
+    }
+
+    // re-arm the timer: timebase is 25 MHz, so 250000 ticks = 10 ms.
+    w_sie(r_sie() & ~SIE_STIE);
+    sbi_set_timer(r_time() + 250000);
+    w_sie(r_sie() | SIE_STIE);
+
+    return 2;
+#endif
   } else {
     return 0;
   }

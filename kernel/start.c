@@ -8,15 +8,19 @@ void main();
 void timerinit();
 
 // entry.S needs one stack per CPU.
-__attribute__ ((aligned (16))) char stack0[4096 * NCPU];
+__attribute__ ((aligned (16), section(".stack"))) char stack0[4096 * NCPU];
 
+#ifdef QEMU
 // scratch area for timer interrupt, one per CPU.
 uint64 mscratch0[NCPU * 32];
 
 // assembly code in kernelvec.S for machine-mode timer interrupt.
 extern void timervec();
+#endif
 
-// entry.S jumps here in machine mode on stack0.
+// entry.S jumps here.
+#ifdef QEMU
+// QEMU: in machine mode (via the -kernel boot ROM).
 void
 start()
 {
@@ -32,6 +36,7 @@ start()
 
   // disable paging for now.
   w_satp(0);
+  sfence_vma();
 
   // delegate all interrupts and exceptions to supervisor mode.
   w_medeleg(0xffff);
@@ -80,3 +85,20 @@ timerinit()
   // enable machine-mode timer interrupts.
   w_mie(r_mie() | MIE_MTIE);
 }
+#else
+// Duo: in supervisor mode, entered via U-Boot `go` under OpenSBI.
+// OpenSBI has already set up PMP, delegated interrupts
+// (MIDELEG 0x222), and handles the timer in M-mode, so all we do
+// is enable S-mode interrupts and keep the hartid.
+void
+start(uint64 hartid)
+{
+  (void)hartid; // U-Boot `go` does not pass a hart ID in a0.
+  // disable paging for now.
+  w_satp(0);
+
+  // keep each CPU's hartid in its tp register, for cpuid().
+  w_tp(0);
+  main();
+}
+#endif

@@ -27,8 +27,7 @@ OBJS = \
   $K/exec.o \
   $K/sysfile.o \
   $K/kernelvec.o \
-  $K/plic.o \
-  $K/virtio_disk.o
+  $K/plic.o
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -36,9 +35,12 @@ OBJS = \
 
 # Try to infer the correct TOOLPREFIX if not set
 ifndef TOOLPREFIX
-TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+
+TOOLPREFIX := $(shell if command -v riscv64-none-elf-gcc >/dev/null 2>&1; \
+	then echo 'riscv64-none-elf-'; \
+	elif command -v riscv64-unknown-elf-gcc >/dev/null 2>&1; \
 	then echo 'riscv64-unknown-elf-'; \
-	elif riscv64-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+	elif command -v riscv64-linux-gnu-gcc >/dev/null 2>&1; \
 	then echo 'riscv64-linux-gnu-'; \
 	else echo "***" 1>&2; \
 	echo "*** Error: Couldn't find an riscv64 version of GCC/binutils." 1>&2; \
@@ -55,6 +57,7 @@ OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
+CFLAGS += -Wno-error=infinite-recursion # sh.c runcmd: intentional recursion, gcc 12+ false positive
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
@@ -69,7 +72,28 @@ ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
 CFLAGS += -fno-pie -nopie
 endif
 
+# Target selection (QEMU is the name of the emulator binary, so the
+# switch is called TARGET):
+#   Default (this branch): Milk-V Duo / Duo 256M, S-mode under OpenSBI,
+#     linked at 0x80200000, RAM disk at RAMDISK.
+#   TARGET=qemu: original MIT xv6 qemu -machine virt target
+#     (M-mode entry at 0x80000000, virtio disk).
+# NOTE: run `make clean` when switching targets.
+ifeq ($(TARGET),qemu)
+OBJS += \
+  $K/virtio_disk.o
+CFLAGS += -DQEMU
+KERNBASE_LD = 0x80000000
+else
+OBJS += \
+  $K/ramdisk.o \
+  $K/sbi.o \
+  $K/rootfs.o
+KERNBASE_LD = 0x80200000
+endif
+
 LDFLAGS = -z max-page-size=4096
+LDFLAGS += --defsym=_kbase=$(KERNBASE_LD)
 
 $K/kernel: $(OBJS) $K/kernel.ld $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) 
@@ -105,7 +129,7 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h
-	gcc -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
+	gcc -Werror -Wall -Wno-stringop-truncation -I. -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -173,6 +197,37 @@ QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-devic
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
+
+#
+# Milk-V Duo targets (default build on this branch).
+#
+# From this repository's Nix shell, at the U-Boot prompt:
+#   make duo          # uploads the self-contained kernel over YMODEM
+#   go 0x80200000
+# Or individually:
+#   make duo-kernel   # kernel -> 0x80200000
+DUO_ADDR_KERNEL = 0x80200000
+ifndef TTY
+TTY = /dev/ttyUSB0
+endif
+YMODEM = ./scripts/ymodem.sh
+
+$K/kernel.bin: $K/kernel
+	$(OBJCOPY) -O binary $K/kernel $K/kernel.bin
+
+rootfs.tar: README $(UPROGS)
+	tar cf $@ README $(UPROGS)
+
+$K/rootfs.o: rootfs.tar
+	$(LD) -r -b binary -o $@ $<
+
+duo-kernel: $K/kernel.bin
+	$(YMODEM) $(TTY) $K/kernel.bin 115200 $(DUO_ADDR_KERNEL)
+
+duo: $K/kernel.bin
+	@echo "*** upload self-contained kernel:" 1>&2
+	$(YMODEM) $(TTY) $K/kernel.bin 115200 $(DUO_ADDR_KERNEL)
+	@echo "*** then: go $(DUO_ADDR_KERNEL)" 1>&2
 
 .gdbinit: .gdbinit.tmpl-riscv
 	sed "s/:1234/:$(GDBPORT)/" < $^ > $@

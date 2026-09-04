@@ -13,7 +13,14 @@
 // the UART control registers are memory-mapped
 // at address UART0. this macro returns the
 // address of one of the registers.
-#define Reg(reg) ((volatile unsigned char *)(UART0 + reg))
+// QEMU's 16550 registers are byte-spaced.  SG2002 UART registers
+// are four bytes apart, with the implemented fields in the low byte.
+#ifdef QEMU
+#define REG_SHIFT 0
+#else
+#define REG_SHIFT 2
+#endif
+#define Reg(reg) ((volatile unsigned char *)(UART0 + ((reg) << REG_SHIFT)))
 
 // the UART control registers.
 // some have different meanings for
@@ -26,6 +33,11 @@
 #define ISR 2 // interrupt status register
 #define LCR 3 // line control register
 #define LSR 5 // line status register
+#define USR 31 // DW APB UART status register (offset 0x7c)
+#define DLL 0 // divisor latch low (when LCR bit 7 set)
+#define DLH 1 // divisor latch high (when LCR bit 7 set)
+#define LCR_BAUD_LATCH (1<<7)
+#define LCR_EIGHT_BITS (3<<0)
 
 #define ReadReg(reg) (*(Reg(reg)))
 #define WriteReg(reg, v) (*(Reg(reg)) = (v))
@@ -36,21 +48,29 @@ uartinit(void)
   // disable interrupts.
   WriteReg(IER, 0x00);
 
-  // special mode to set baud rate.
-  WriteReg(LCR, 0x80);
+#ifdef QEMU
+  // special mode to set baud rate, 8 bits, no parity.
+  WriteReg(LCR, LCR_BAUD_LATCH | LCR_EIGHT_BITS);
 
   // LSB for baud rate of 38.4K.
-  WriteReg(0, 0x03);
+  WriteReg(DLL, 0x03);
 
   // MSB for baud rate of 38.4K.
-  WriteReg(1, 0x00);
+  WriteReg(DLH, 0x00);
 
-  // leave set-baud mode,
-  // and set word length to 8 bits, no parity.
-  WriteReg(LCR, 0x03);
+  // leave set-baud mode.
+  WriteReg(LCR, LCR_EIGHT_BITS);
 
   // reset and enable FIFOs.
   WriteReg(FCR, 0x07);
+#else
+  // The Duo enters through U-Boot, which has already configured UART0
+  // for the live 115200/8-N-1 console. Preserve that known-good state.
+  // In particular, do not rewrite LCR during the handoff: SG2002's DW
+  // UART can reject that write and latch a busy-detect interrupt while
+  // the inherited transmitter/receiver is active.
+  (void)ReadReg(USR);
+#endif
 
   // enable receive interrupts.
   WriteReg(IER, 0x01);
@@ -87,6 +107,13 @@ uartgetc(void)
 void
 uartintr(void)
 {
+#ifndef QEMU
+  // DW APB UART interrupt ID 0x7 is busy detect. Reading USR is the
+  // documented acknowledgement; draining RHR does not clear it.
+  if((ReadReg(ISR) & 0xf) == 0x7)
+    (void)ReadReg(USR);
+#endif
+
   while(1){
     int c = uartgetc();
     if(c == 27) {

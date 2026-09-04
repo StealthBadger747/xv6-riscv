@@ -12,6 +12,47 @@ This is a hobby toy and learning tool for myself.
 - Complete strace implementation
 - Add networking stack/support
 
+## Building
+
+This repository contains its own Nix development shell. It supplies the
+RISC-V bare-metal toolchain, QEMU, and the YMODEM uploader; no tooling from a
+neighbouring checkout is required.
+
+```sh
+nix develop
+make                 # Milk-V Duo/Duo256M kernel (default)
+make TARGET=qemu qemu
+```
+
+The Milk-V build embeds `rootfs.tar` in `kernel/kernel.bin`. On every boot the
+kernel formats its volatile RAM disk at `0x81000000` and extracts that tarball,
+so there is no separate `fs.img` to build or upload.
+
+### Booting on Milk-V Duo / Duo256M
+
+Connect the board's UART at 115200 baud. At the U-Boot prompt, close any
+serial-console program that owns `/dev/ttyUSB0`, then run:
+
+```sh
+nix develop -c make duo-kernel
+```
+
+The local uploader sends `loady 0x80200000` and transfers the kernel with
+YMODEM. Do not enter `loady` manually first. Reconnect the serial console when
+the transfer completes and run:
+
+```text
+go 0x80200000
+```
+
+The expected result is an xv6 shell. For a quick RAMFS check:
+
+```text
+ls
+echo ramfs-ok
+cat README
+```
+
 
 
 * Original README:
@@ -56,7 +97,6 @@ simplifications and clarifications than new features.
 
 BUILDING AND RUNNING XV6
 
-You will need a RISC-V "newlib" tool chain from
-https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
-riscv64-softmmu. Once they are installed, and in your shell
-search path, you can run "make qemu".
+Use the project-local Nix shell described above. It provides the RISC-V
+"newlib" toolchain and QEMU; run `nix develop -c make TARGET=qemu qemu` for
+the original QEMU target.

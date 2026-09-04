@@ -60,8 +60,10 @@ int             writei(struct inode*, int, uint64, uint, uint);
 
 // ramdisk.c
 void            ramdiskinit(void);
-void            ramdiskintr(void);
-void            ramdiskrw(struct buf*);
+void            ramdiskrw(struct buf *, int);
+
+// sbi.c
+void            sbi_set_timer(uint64);
 
 // kalloc.c
 void*           kalloc(void);
@@ -172,8 +174,8 @@ int             uartgetc(void);
 void            kvminit(void);
 void            kvminithart(void);
 uint64          kvmpa(uint64);
-void            kvmmap(uint64, uint64, uint64, int);
-int             mappages(pagetable_t, uint64, uint64, uint64, int);
+void            kvmmap(uint64, uint64, uint64, uint64);
+int             mappages(pagetable_t, uint64, uint64, uint64, uint64);
 pagetable_t     uvmcreate(void);
 void            uvminit(pagetable_t, uchar *, uint);
 uint64          uvmalloc(pagetable_t, uint64, uint64);

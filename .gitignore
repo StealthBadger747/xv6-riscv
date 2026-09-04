@@ -13,6 +13,8 @@ initcode.out
 kernelmemfs
 mkfs
 kernel/kernel
+kernel/kernel.bin
+rootfs.tar
 user/usys.S
 .gdbinit
 Testing_Script.ahk

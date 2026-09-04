@@ -11,5 +11,7 @@
 #define MAXOPBLOCKS  10  // max # of blocks any FS op writes
 #define LOGSIZE      (MAXOPBLOCKS*3)  // max data blocks in on-disk log
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
-#define FSSIZE       50000  // size of file system in blocks  (1000)
+#define FSSIZE       4000  // size of file system in blocks
+                           // (Duo: fs.img lives in a 4 MB RAM disk;
+                           // QEMU builds may raise this freely)
 #define MAXPATH      128   // maximum file path name
